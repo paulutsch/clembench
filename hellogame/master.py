@@ -1,11 +1,12 @@
+import logging
 import string
 from typing import Dict, List
 
-from clemcore.backends import Model, CustomResponseModel
-from clemcore.clemgame import GameBenchmark, Player, DialogueGameMaster, GameSpec, GameRecorder
-import logging
+from clemcore.backends import CustomResponseModel, Model
+from clemcore.clemgame import GameBenchmark, GameRecorder, GameSpec, Player
 
-logger = logging.getLogger(__name__)
+from hellogame.game_environment import HelloGameEnvironment
+from world_environments.game_master import DialogueGameMaster
 
 
 class Greeted(Player):
@@ -30,18 +31,31 @@ class Greeter(Player):
 class HelloGame(DialogueGameMaster):
     """This class implements a greeting game in which player A
     is greeting another player with a target name.
+
+    This version uses the new GameEnvironment approach for state management.
     """
 
-    def __init__(self, game_name: str, game_path: str, experiment: Dict, player_models: List[Model]):
-        super().__init__(game_name, game_path, experiment, player_models)
-        self.language: int = experiment["language"]  # fetch experiment parameters here
-        self.required_words = ["welcome", "hello"]
-        self.missing_words = []
-        self.success = True
-        self.aborted = False
+    def __init__(
+        self,
+        game_name: str,
+        game_path: str,
+        experiment: Dict,
+        player_models: List[Model],
+    ):
+        # Create the game environment with the experiment parameters
+        game_environment = HelloGameEnvironment(config=experiment)
+
+        # Initialize with the game environment
+        super().__init__(
+            game_name, game_path, experiment, player_models, game_environment
+        )
 
     def _on_setup(self, **game_instance):
-        self.game_instance = game_instance  # fetch game parameters here
+        # Update the environment config with the game instance parameters
+        self.game_environment.config.update(game_instance)
+
+        # Reset the environment to apply the updated config
+        observation, _ = self.game_environment.reset()
 
         # Create the players
         self.greeted = Greeted(game_instance["target_name"])
@@ -52,50 +66,53 @@ class HelloGame(DialogueGameMaster):
         self.add_player(self.greeter)
         self.add_player(self.greeted)
 
-        self.required_words.append(self.greeted.target_name.lower())
-
     def _on_before_game(self):
-        # Do something before the game start e.g. add the initial prompts to the message list for the players
-        self.set_context_for(self.greeter, self.game_instance["prompt"])
+        # Get the prompt from the environment state
+        prompt = self.game_environment.state["prompt"]
+        # Set the initial context for the greeter player
+        self.set_context_for(self.greeter, prompt)
 
     def _does_game_proceed(self):
-        # Determine if the game should proceed. This is also called once initially.
-        if self.current_round == 0:
-            return True
-        if self.aborted:
-            self.log_to_self("invalid format", "abort game")
-        if self.success:
-            self.log_to_self("greeting successful", "end game")
-        else:
-            self.log_to_self("greeting failed", f"missing words=[{','.join(self.missing_words)}]")
-        return False
+        # Check if the environment is in a terminal state
+        return not self.game_environment.is_terminal()
 
     def _validate_player_response(self, player: Player, utterance: str) -> bool:
-        # Check responses for specific players
-        if player == self.greeter:
-            # Check rule: utterance starts with key word
-            if not utterance.startswith("GREET:"):
-                self.aborted = True
-                self.success = False
-                return True
-            # Check rule: required words are included
-            utterance = utterance.lower()
-            utterance = utterance.translate(str.maketrans("", "", string.punctuation))
-            for required_word in self.required_words:
-                if required_word not in utterance:
-                    self.success = False
-                    self.missing_words.append(required_word)
+        # Validation is now handled by the environment in the step method
+        # Always return True here as we'll let the environment handle validation
         return True
 
     def _on_valid_player_response(self, player: Player, parsed_response: str):
         if player == self.greeter:
             self.set_context_for(self.greeted, parsed_response)
 
+    def create_action_from_response(
+        self, response: str, action_type: str = "text"
+    ) -> Dict:
+        """Convert the player's text response to an action for the environment"""
+        return {"action_type": 0, "text": response}
+
+    def _process_step_result(
+        self, response: str, observation: Dict, terminated: bool, truncated: bool
+    ) -> tuple[bool, Dict]:
+        """Process the result from the environment step"""
+        # All game logic is now handled in the environment
+        info = {}
+
+        # Get data from the environment
+        env_info = self.game_environment.get_info()
+        env_state = self.game_environment.get_state()
+
+        # Set score information
+        info["response_score"] = 1.0 if env_state["success"] else 0.0
+        info["response_feedback"] = env_info.get("message", "")
+        info["episode_score"] = 1.0 if env_state["success"] else 0.0
+
+        # Return whether the game is done and the info dictionary
+        return terminated or truncated, info
+
     def compute_episode_score(self):
-        score = 0
-        if self.success:
-            score = 1
-        return score
+        # Get the success status from the environment
+        return 1.0 if self.game_environment.state["success"] else 0.0
 
 
 class HelloGameBenchmark(GameBenchmark):
@@ -103,5 +120,7 @@ class HelloGameBenchmark(GameBenchmark):
     def __init__(self, game_spec: GameSpec):
         super().__init__(game_spec)
 
-    def create_game_master(self, experiment: Dict, player_models: List[Model]) -> DialogueGameMaster:
+    def create_game_master(
+        self, experiment: Dict, player_models: List[Model]
+    ) -> DialogueGameMaster:
         return HelloGame(self.game_name, self.game_path, experiment, player_models)
