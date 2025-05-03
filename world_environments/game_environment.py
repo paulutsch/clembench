@@ -13,6 +13,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, Generic, List, Optional, Tuple, TypeVar, Union
 
 import gymnasium as gym
+from clemcore.clemgame.player import Player
 from gymnasium import spaces
 
 ObsType = TypeVar("ObsType")
@@ -28,7 +29,12 @@ class GameEnvironment(gym.Env, Generic[ObsType, ActType], ABC):
     This class follows both the Gymnasium interface and the clembench framework.
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(
+        self,
+        action_spaces: Dict[str, spaces.Space[ActType]],
+        observation_spaces: Dict[str, spaces.Space[ObsType]],
+        config: Optional[Dict[str, Any]] = None,
+    ):
         """
         Initialize a game environment.
 
@@ -36,40 +42,42 @@ class GameEnvironment(gym.Env, Generic[ObsType, ActType], ABC):
             config: Optional configuration parameters for the environment
         """
         super().__init__()
-        logger.info(f"Initializing game environment with config: {config}")
-        self.config = config if config is not None else {}
+        logger.info(
+            f"Initializing game environment with action spaces: {action_spaces} and observation spaces: {observation_spaces}"
+        )
 
-        # set the subclasses' action and observation spaces
-        self.action_space: spaces.Space[ActType]
-        self.observation_space: spaces.Space[ObsType]
+        self.action_spaces = action_spaces
+        self.observation_spaces = observation_spaces
 
-        # set the environment state
+        # environment state
         self.state: Dict[str, Any] = {}
         self.terminated: bool = False
         self.truncated: bool = False
         self.info: Dict[str, Any] = {}
 
+        # environment config
+        self.config: Dict[str, Any] = config or {}
+
     @abstractmethod
-    def reset(self) -> Tuple[ObsType, Dict[str, Any]]:
+    def reset(self) -> Dict[str, Any]:
         """
         Reset the environment to its initial state.
 
         Returns:
-            Tuple containing:
-                - Initial observation
-                - Information dictionary
+            Information dictionary
         """
         raise NotImplementedError
 
     @abstractmethod
     def step(
-        self, action: ActType
+        self, player: Player, action: ActType
     ) -> Tuple[ObsType, float, bool, bool, Dict[str, Any]]:
         """
         Take a step in the environment using the provided action.
 
         Args:
             action: The action to take in the environment
+            player: The player taking the action
 
         Returns:
             Tuple containing:
@@ -78,6 +86,9 @@ class GameEnvironment(gym.Env, Generic[ObsType, ActType], ABC):
                 - Whether the episode is terminated
                 - Whether the episode is truncated
                 - Information dictionary
+                    - response_score: The score for the response
+                    - response_feedback: The feedback for the response
+                    - episode_score: The score for the episode
         """
         raise NotImplementedError
 
@@ -108,7 +119,22 @@ class GameEnvironment(gym.Env, Generic[ObsType, ActType], ABC):
         """
         return self.info
 
-    def validate_action(self, action: ActType) -> bool:
+    def get_config(self) -> Dict[str, Any]:
+        """
+        Get the current configuration.
+        """
+        return self.config
+
+    def update_config(self, config: Dict[str, Any]):
+        """
+        Update the configuration.
+
+        Args:
+            config: The configuration to update
+        """
+        self.config.update(config)
+
+    def validate_action(self, player: Player, action: ActType) -> bool:
         """
         Validate if an action is legal in the current state.
 
@@ -118,17 +144,37 @@ class GameEnvironment(gym.Env, Generic[ObsType, ActType], ABC):
         Returns:
             True if the action is valid, False otherwise
         """
-        if self.action_space is None:
+        if self.action_spaces[player.name] is None:
             return True
-        return self.action_space.contains(action)
+        return self.action_spaces[player.name].contains(action)
 
     @abstractmethod
-    def legal_actions(self) -> List[ActType]:
+    def legal_actions(self, player: Player) -> List[ActType]:
         """
         Get a list of legal actions in the current state.
 
         Returns:
             A list of legal actions
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def set_observation_for(self, player: Player, observation: ObsType):
+        """
+        Set the observation for a player.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def observe_for(self, player: Player) -> ObsType:
+        """
+        Get the observation for a player.
+
+        Args:
+            player: The player to get the observation for
+
+        Returns:
+            The observation for the player
         """
         raise NotImplementedError
 
