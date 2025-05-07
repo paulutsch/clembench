@@ -20,26 +20,20 @@ Steps taken when "playing a game":
 
 import collections
 import json
-import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Type, TypeVar, Union, cast
+from typing import Any, Dict, List, Optional, Union
 
 from clemcore import backends
 from clemcore.clemgame import GameResourceLocator
 from clemcore.clemgame.player import Player
 from clemcore.clemgame.recorder import NoopGameRecorder
 
-from _logger import setup_logger
+from _logger import format_json, setup_logger
 
 from .game_environment import GameEnvironment
 
 logger = setup_logger(__name__)
-
-
-def format_json(data: Any) -> str:
-    """Format a dictionary or object as a pretty JSON string."""
-    return json.dumps(data, indent=2, sort_keys=True, default=str)
 
 
 # changes in the new verion of GameMaster:
@@ -300,7 +294,7 @@ class DialogueGameMaster(GameMaster):
     # edited this from original GameMaster class, such that it returns the game_environment's state
     def get_environment_state(self):
         """Get the current game state from the environment."""
-        return self.game_environment.get_state()
+        return self.game_environment.state
 
     # took this without change from original GameMaster class
     def get_current_player(self) -> Optional[Player]:
@@ -531,7 +525,7 @@ class DialogueGameMaster(GameMaster):
         """
         logger.info("[_on_after_game] Game completed, processing final state")
 
-        final_state = self.game_environment.get_state()
+        final_state = self.game_environment.state
 
         logger.debug(f"Final game state: \n{format_json(final_state)}")
 

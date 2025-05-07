@@ -11,18 +11,29 @@ Environments:
 import json
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, TypedDict, Union, cast
 
 from clemcore.clemgame.player import Player
 
-from _logger import setup_logger
+from _logger import format_json, setup_logger
 
 logger = setup_logger(__name__)
 
 
-def format_json(data: Any) -> str:
-    """Format a dictionary or object as a pretty JSON string."""
-    return json.dumps(data, indent=2, sort_keys=True, default=str)
+class GameState(TypedDict):
+    """Base type definition for the game environment's state with required fields.
+
+    Required fields:
+    - current_context: The current context/observation for the active player
+    - terminated: Whether the game has terminated
+    - success: Whether the game was successful
+    - aborted: Whether the game was aborted
+    """
+
+    current_context: str
+    terminated: bool
+    success: bool
+    aborted: bool
 
 
 class GameEnvironment(ABC):
@@ -55,8 +66,13 @@ class GameEnvironment(ABC):
 
         self.config = config or {}
 
-        self.state: Dict[str, Any] = {}
-        self.terminated: bool = False
+        # Initialize state with required fields
+        self.state: GameState = {
+            "current_context": "",
+            "terminated": False,
+            "success": False,
+            "aborted": False,
+        }
 
     @abstractmethod
     def reset(self) -> Dict[str, Any]:
@@ -68,75 +84,48 @@ class GameEnvironment(ABC):
         """
         raise NotImplementedError
 
-    @abstractmethod
     def step(
-        self, player: Player, action_dict: Dict[str, Any]
-    ) -> Tuple[Dict[str, Any], float, bool]:
-        """
-        Take a step in the environment using the provided action from a specific player.
+        self, player: Player, action: Dict[str, Any]
+    ) -> Tuple[Dict[str, Any], bool, bool]:
+        """Execute one step in the environment.
 
         Args:
             player: The player making the action
             action: Action dictionary with:
                 - action_type: Type of action (always 'text' for this game)
-                - text: The greeting text from the player
+                - body: The text response from the player
 
         Returns:
-            Tuple containing:
-                - Next observation
-                - Reward value (1.0 for success, 0.0 for failure)
-                - Whether the episode is terminated
+            Tuple of (observation, success, terminated)
         """
         logger.info(f"[step] Environment step with player: {player.name}")
-        logger.debug(f"[step] Action: {action_dict}")
-
-        if not self._validate_action(player, action_dict):
-            # TODO: implement an option to continue the game on invalid action?
-            raise ValueError(f"[step] Invalid action: {action_dict}")
-
-        text_response = action_dict["body"]
-        logger.debug(f"[step] Text response: {text_response}")
-        self.state["current_context"] = text_response
+        logger.debug(f"[step] Action: {action}")
 
         logger.debug("[step] Validating action")
-        is_valid = self._validate_action(player, action_dict)
-        if not is_valid:
+        if not self._validate_action(player, action):
             # TODO: implement an option to continue the game on invalid action?
-            raise ValueError(f"[step] Invalid action: {action_dict}")
+            raise ValueError(f"[step] Invalid action: {action}")
 
-        self.state["round"] += 1
-        logger.debug(f"[step] Round updated to: {self.state['round']}")
+        self._update_state_through_action(player, action)
 
-        self.terminated = True  # Hello game only has one round
-        logger.debug(f"[step] Game terminated: {self.terminated}")
-
-        score = 1.0 if self.state["success"] else 0.0
-        logger.debug(f"[step] Reward: {score}")
-
-        logger.debug(f"[step] Game state: \n{format_json(self.state)}")
+        logger.debug(f"[step] New game state: \n{format_json(self.state)}")
         if self.state["aborted"]:
-            result_message = "invalid format: abort game"
-            logger.warning(f"[step] Game aborted: {text_response}")
+            logger.warning(f"[step] Action aborted")
         elif self.state["success"]:
-            result_message = "greeting successful: end game"
-            logger.info("[step] Greeting was successful")
+            logger.info("[step] Action was successful")
         else:
-            missing = ",".join(self.state["missing_words"])
-            result_message = f"greeting failed: missing words=[{missing}]"
-            logger.warning(f"[step] Greeting failed, missing words: {missing}")
+            logger.warning(f"[step] Action was unsuccessful")
 
-        observation = {
-            "context": self.state["current_context"],
-            "success": self.state["success"],
-        }
+        self.set_observation_space(player, self.state["current_context"])
+        observation = self.get_observation_space(player)
+
         logger.debug(f"[step] Observation: \n{format_json(observation)}")
 
-        self.set_observation_space(player, observation["context"])
         logger.debug(
             f"[step] Updated observation for player: {player.name if hasattr(player, 'name') else 'unknown'}"
         )
 
-        return observation, score, self.terminated
+        return observation, self.state["success"], self.state["terminated"]
 
     def _validate_action(self, player: Player, action: Dict[str, Any]) -> bool:
         """
@@ -149,6 +138,16 @@ class GameEnvironment(ABC):
             return False
         return True
 
+    @abstractmethod
+    def _update_state_through_action(self, player: Player, action: Dict[str, Any]):
+        """
+        Update the state after an action is taken.
+
+        This method should update state["current_context"], state["success"], state["aborted"].
+        It should also update self.state["terminated"] if the game should terminate.
+        """
+        raise NotImplementedError
+
     def _is_action_valid_in_state(self, player: Player, action_type: str) -> bool:
         """
         Validate if an action is legal in the current state.
@@ -156,24 +155,6 @@ class GameEnvironment(ABC):
         Overwrite this method in your subclass to implement custom validation logic based on the current state.
         """
         return True
-
-    def get_state(self) -> Dict[str, Any]:
-        """
-        Get the current environment state.
-
-        Returns:
-            The current state as a dictionary
-        """
-        return self.state
-
-    def is_terminal(self) -> bool:
-        """
-        Check if the environment is in a terminal state.
-
-        Returns:
-            True if the environment is terminated, False otherwise
-        """
-        return self.terminated
 
     def set_observation_space(self, player: Player, content: str):
         """
@@ -224,19 +205,3 @@ class GameEnvironment(ABC):
             action_space: The action space to set
         """
         self.action_spaces[player.name] = action_space
-
-    def render(self) -> Union[str, Dict[str, Any]]:
-        """
-        Render the current state of the environment.
-
-        Returns:
-            A dictionary representation of the current state
-        """
-        render_state = {
-            "prompt": self.state["prompt"],
-            "success": self.state["success"],
-            "missing_words": self.state["missing_words"],
-            "aborted": self.state["aborted"],
-        }
-        logger.debug(f"[render] Current state: \n{format_json(render_state)}")
-        return render_state

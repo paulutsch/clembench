@@ -2,7 +2,9 @@
 Centralized logging configuration for clembench.
 """
 
+import json
 import logging
+from typing import Any
 
 import colorlog
 
@@ -44,3 +46,8 @@ def setup_logger(name: str) -> logging.Logger:
         logger.propagate = False
 
     return logger
+
+
+def format_json(data: Any) -> str:
+    """Format a dictionary or object as a pretty JSON string."""
+    return json.dumps(data, indent=2, sort_keys=True, default=str)

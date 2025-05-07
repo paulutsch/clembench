@@ -140,8 +140,7 @@ class HelloGame(DialogueGameMaster):
             f"[_compute_response_score] Computing response score for response: {response}"
         )
 
-        env_state = self.game_environment.get_state()
-        score = 1.0 if env_state["success"] else 0.0
+        score = 1.0 if self.game_environment.state["success"] else 0.0
         logger.debug(f"[_compute_response_score] Response score: {score}")
         return score
 
@@ -152,8 +151,7 @@ class HelloGame(DialogueGameMaster):
         """
         logger.info("[_compute_episode_score] Computing episode score")
 
-        env_state = self.game_environment.get_state()
-        score = 1.0 if env_state["success"] else 0.0
+        score = 1.0 if self.game_environment.state["success"] else 0.0
         logger.info(f"[_compute_episode_score] Episode score: {score}")
         return score
 
