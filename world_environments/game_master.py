@@ -19,6 +19,7 @@ Steps taken when "playing a game":
 """
 
 import collections
+import json
 import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -29,15 +30,16 @@ from clemcore.clemgame import GameResourceLocator
 from clemcore.clemgame.player import Player
 from clemcore.clemgame.recorder import NoopGameRecorder
 
-# Import the base environment class
+from _logger import setup_logger
+
 from .game_environment import GameEnvironment
 
-logger = logging.getLogger(__name__)
+logger = setup_logger(__name__)
 
-# Define type aliases for action and observation types
-# These will be used in place of concrete classes
-GameObservation = TypeVar("GameObservation")
-GameAction = TypeVar("GameAction")
+
+def format_json(data: Any) -> str:
+    """Format a dictionary or object as a pretty JSON string."""
+    return json.dumps(data, indent=2, sort_keys=True, default=str)
 
 
 # changes in the new verion of GameMaster:
@@ -95,19 +97,21 @@ class GameMaster(ABC):
 
     # this is a new method
     @abstractmethod
-    def create_action_from_response(
-        self, response: str, action_type: str = "text"
-    ) -> Any:
+    def create_action_from_response(self, response: str) -> Dict[str, Any]:
         """Create an action from a player's response.
+
+        Default: return action
 
         Args:
             response: The textual response from the player
             action_type: The type of action to create
 
         Returns:
-            An action object suitable for the environment
+            The action to be taken, in the form of a dictionary with (at least) the following keys:
+                - action_type: The type of action to create
+                - body: The body of the action
         """
-        raise NotImplementedError("Subclasses must implement this method")
+        raise NotImplementedError
 
     # took this without change from original GameMaster class
     def load_json(self, file_path: Union[str, Path]):
@@ -158,13 +162,13 @@ class GameMaster(ABC):
         Args:
             kwargs: Keyword arguments used to set up the GameMaster instance.
         """
-        pass
+        raise NotImplementedError
 
     # took this without change from original GameMaster class
     @abstractmethod
     def play(self) -> None:
         """Play the game (multiple turns of a specific game instance)."""
-        pass
+        raise NotImplementedError
 
 
 class DialogueGameMaster(GameMaster):
@@ -196,15 +200,10 @@ class DialogueGameMaster(GameMaster):
         # set players
         self.players_by_names: Dict[str, Player] = collections.OrderedDict()
 
-        # TODO: remove this attribute and delegate context management to game_environment
-        self.context_for_player: Dict[str, Dict] = (
-            dict()
-        )  # context entries look like {"role":"user", "content": ...}
         self.current_player: Optional[Player] = None
         self.current_player_idx: int = 0
 
         self.current_round: int = 0
-        self.info = {}
 
     # took this without change from original GameMaster class
     def __setstate__(self, state):
@@ -228,8 +227,7 @@ class DialogueGameMaster(GameMaster):
     def add_player(
         self,
         player: Player,
-        initial_prompt: Optional[Union[str, Dict]] = None,
-        initial_context: Optional[Union[str, Dict]] = None,
+        initial_content: str = "",
     ):
         """Add a player to the game. The same player cannot be added twice.
         The player identity is determined by the player's name.
@@ -249,10 +247,6 @@ class DialogueGameMaster(GameMaster):
             self.game_recorder
         )  # player should record to the same interaction log
 
-        # set the initial prompt on the player if provided
-        if initial_prompt is not None:
-            setattr(player, "_initial_prompt", initial_prompt)
-
         player.name = (
             f"Player {len(self.players_by_names) + 1} ({player.__class__.__name__})"
         )
@@ -262,24 +256,10 @@ class DialogueGameMaster(GameMaster):
                 f"but there is already a player registered with name '{player.name}'."
             )
         self.players_by_names[player.name] = player
-        if initial_context is not None:
-            assert isinstance(
-                initial_context, (str, dict)
-            ), f"The initial context must be a str or dict, but is {type(initial_context)}"
-            if isinstance(initial_context, dict):
-                assert (
-                    "content" in initial_context
-                ), "The initial context requires a content entry"
-                extras = {
-                    k: v
-                    for k, v in initial_context.items()
-                    if k not in ["role", "content"]
-                }
-                self.game_environment.set_observation_for(
-                    player, initial_context["content"], **extras
-                )
-            else:
-                self.game_environment.set_observation_for(player, initial_context)
+
+        # TODO: this is a hack to get the action space and observation space for the player — is there a better way?
+        self.game_environment.set_observation_space(player, initial_content)
+        self.game_environment.set_action_space(player, ["verbal_response"])
 
     # edited this from original GameMaster class, such that it resets the game_environment
     def setup(self, **kwargs):
@@ -305,10 +285,6 @@ class DialogueGameMaster(GameMaster):
         if self.players_by_names:
             self.current_player = self.get_players()[self.current_player_idx]
 
-        # call game hooks
-        self._on_before_game()
-        self._on_before_round()
-
     # took this without change from original GameMaster class
     @abstractmethod
     def _on_setup(self, **kwargs):
@@ -322,7 +298,7 @@ class DialogueGameMaster(GameMaster):
         pass
 
     # edited this from original GameMaster class, such that it returns the game_environment's state
-    def get_game_state(self):
+    def get_environment_state(self):
         """Get the current game state from the environment."""
         return self.game_environment.get_state()
 
@@ -330,127 +306,72 @@ class DialogueGameMaster(GameMaster):
     def get_current_player(self) -> Optional[Player]:
         return self.current_player
 
-    # took this without change from original GameMaster class
-    # def set_context_for(self, player: Player, content: str, **extras):
-    #     """
-    #     Set the context for the specified Player. The player will be prompted with the context on its next turn.
-
-    #     The context always has a 'role' and 'content' entry where the 'role' is always set to 'user'.
-    #     Args:
-    #         player: The player to set the context for.
-    #         content: The text content to be added to the context.
-    #         extras: Additional content to be merged into the context e.g. information about images
-    #     """
-    #     message = {"role": "user", "content": content}
-    #     context = {**extras, **message}
-    #     self.context_for_player[player.name] = context
-
-    # took this without change from original GameMaster class
-    # def get_context_for(self, player: Player) -> Dict:
-    #     """Get the context for a player.
-
-    #     Args:
-    #         player: The player to get the context for
-
-    #     Returns:
-    #         The context for the player
-
-    #     Raises:
-    #         AssertionError: If the player is None or has no context set
-    #     """
-    #     assert (
-    #         player.name in self.context_for_player
-    #     ), f"No context set for {player.name}"
-    #     context = self.context_for_player[player.name]
-    #     assert "role" in context, f"Player context must have a 'role' entry"
-    #     assert context["role"] == "user", f"Role of player context must be 'user'"
-    #     assert "content" in context, f"Player context must have a 'content' entry"
-    #     return context
-
     # edited this from original GameMaster class, such that it uses the game_environment for state management
     def play(self) -> None:
         """
         Main play loop method. This method is called to run the game for benchmarking.
         This implementation uses the game environment for state management.
         """
+        logger.debug(
+            f"[_play] Starting game with current player: {self.current_player}"
+        )
         if self.current_player is None:
             logger.warning("No current player set, ending game.")
             return
 
-        done = False
-        while not done:
-            self._on_before_round()
-            observation = self.game_environment.observe_for(self.current_player)
+        self.game_environment.reset()
 
-            # Get context from the environment
+        terminated = False
+        while not terminated:
+            self._on_before_round()
+            observation = self.game_environment.get_observation_space(
+                self.current_player
+            )
+            logger.debug(f"[_play] Observation: {observation}")
             context = {
                 "role": "user",
                 "content": observation["content"],
             }
 
-            # Get player's response
             response = self.current_player(context)
 
-            # Validate and parse the response
+            # TODO: now that we have _validate_action in the game_environment, do we still need this?
             if not self._validate_player_response(self.current_player, response):
-                # Handle invalid responses based on game rules
-                done = not self._does_game_proceed()
-                if done:
+                logger.warning(
+                    f"[_play] Player {self.current_player.name} response is invalid"
+                )
+                terminated = self._should_terminate_on_invalid_response()
+                if terminated:
                     self._on_after_game()
-                break
+                    break
 
-            # Parse valid response
             parsed_response = self._parse_response(self.current_player, response)
-
-            # Custom game logic for processing the response
+            logger.debug(f"[_play] Parsed response: {parsed_response}")
             self._on_valid_player_response(self.current_player, parsed_response)
 
-            # Create action from response and step the environment
             action = self.create_action_from_response(parsed_response)
-            next_observation, reward, terminated, truncated, info = (
-                self.game_environment.step(self.current_player, action)
+            logger.debug(f"[_play] Action: {action}")
+            next_observation, score, terminated = self.game_environment.step(
+                self.current_player, action
             )
 
-            # Update game info
-            self.info.update(info)
+            if terminated:
+                self._on_after_game()
 
-            # Check if the game should continue
-            done = terminated or truncated or not self._does_game_proceed()
-
-            # Handle turn passing and round transitions
-            if not done and self._should_pass_turn():
+            if not terminated and self._should_pass_turn():
+                # next player should now play
                 self.current_player = self._next_player()
+                # if the current player is the first player, we are at the end of a round (default behavior in _start_next_round)
                 if self._start_next_round():
                     self._on_after_round()
                     self.current_round += 1
                     self.log_next_round()
 
-                # Get observation for the next player
-                observation = self.game_environment.observe_for(self.current_player)
+                observation = self.game_environment.get_observation_space(
+                    self.current_player
+                )
             else:
                 observation = next_observation
-
-            # Handle game end
-            if done:
-                self._on_after_game()
-                info["episode_score"] = self.compute_episode_score()
-                self.info.update(info)
-                self.log_key("episode_score", info["episode_score"])
-
-    def _process_step_result(
-        self, response: str, context: Any, terminated: bool, truncated: bool
-    ) -> Tuple[bool, Dict]:
-        """
-        This method is deprecated and will be removed in a future version.
-        Game state processing now happens directly in the play() method.
-
-        Returns a default result for compatibility.
-        """
-        logger.warning(
-            "_process_step_result is deprecated, logic moved to play() method"
-        )
-        done = terminated or truncated or not self._does_game_proceed()
-        return done, {}
 
     def _next_player(self) -> Player:
         """
@@ -478,19 +399,7 @@ class DialogueGameMaster(GameMaster):
         """
         return self.current_player_idx == 0
 
-    def __prepare_next_round(self):
-        self.log_next_round()  # add record entry for player turns
-        self._on_before_round()
-
-    def get_response_feedback(self, response: str, context: Dict):
-        """
-        Optional.
-        :param response: The response of the current player.
-        :param context: The context given to the current player to generate the response for.
-        :return: a verbal feedback about the player's response given the context
-        """
-        return None
-
+    @abstractmethod
     def compute_response_score(self, response: str, context: Dict):
         """
         Mandatory.
@@ -498,14 +407,15 @@ class DialogueGameMaster(GameMaster):
         :param context: The context given to the current player to generate the response for.
         :return: the performance score for a player's response given the context
         """
-        return 0
+        raise NotImplementedError
 
+    @abstractmethod
     def compute_episode_score(self):
         """
         Mandatory.
         :return: the performance of the agent over the whole episode
         """
-        return 0
+        raise NotImplementedError
 
     def _should_pass_turn(self):
         """
@@ -529,7 +439,7 @@ class DialogueGameMaster(GameMaster):
             player: The Player instance that produced the response (or has been modified by the GM).
             parsed_response: The parsed and valid response of the current player.
         """
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def _validate_player_response(self, player: Player, response: str) -> bool:
@@ -548,6 +458,28 @@ class DialogueGameMaster(GameMaster):
         """
         raise NotImplementedError
 
+    def create_action_from_response(self, response: str) -> Dict[str, Any]:
+        """Create an action from a player's response.
+
+        Default: return action
+
+        Args:
+            response: The textual response from the player
+            action_type: The type of action to create
+
+        Returns:
+            {"action_type": "verbal_response", "body": response}
+        """
+        return {"action_type": "verbal_response", "body": response}
+
+    def _should_terminate_on_invalid_response(self) -> bool:
+        """
+        Decide if the game should terminate on an invalid response.
+
+        Default: False
+        """
+        return False
+
     def _parse_response(self, player: Player, response: str) -> str:
         """Decide if a response utterance should be modified and apply modifications.
 
@@ -561,19 +493,6 @@ class DialogueGameMaster(GameMaster):
             The parsed response
         """
         return response
-
-    @abstractmethod
-    def _does_game_proceed(self) -> bool:
-        """Check if game should proceed.
-
-        Template method: Must be implemented!
-
-        This method is used to determine if a game should continue or be stopped. Both successful completion of the game
-        and game-ending failures should lead to this method returning False.
-        Returns:
-            A bool, True if game continues, False if game should stop.
-        """
-        raise NotImplementedError
 
     def _on_before_round(self):
         """Executed in the play loop before a new round of gameplay starts.
@@ -593,27 +512,32 @@ class DialogueGameMaster(GameMaster):
         """Executed once at the start, before entering the play loop.
 
         Hook: Modify this method for game-specific functionality.
-
-        Adding the initial prompt to the dialogue history with this method is recommended.
         """
-        logger.info("[_on_before_game] Game starting")
-        if self.current_player is None:
-            raise ValueError("No current player set, ending game.")
-
-        # Get the prompt from the environment state
-        self.game_environment.reset()
-        prompt = self.game_environment.state["prompt"]
-        logger.debug(f"[_on_before_game] Initial prompt from environment: {prompt}")
-
-        # Set the initial observation for the greeter player using the game environment
-        self.game_environment.set_observation_for(self.current_player, prompt)
-        logger.debug(f"[_on_before_game] Set initial observation for greeter player")
+        pass
 
     def _on_after_game(self):
+        """Executed once at the end, after exiting the play loop.
+
+        Hook: Modify this method for game-specific functionality.
+        """
+        self._add_logs_to_episode_scores()
+
+    def _add_logs_to_episode_scores(self):
         """Executed once at the end, after exiting the play loop.
 
         Hook: Modify this method for game-specific functionality.
 
         This method is useful to process and log/record overall game results.
         """
-        pass
+        logger.info("[_on_after_game] Game completed, processing final state")
+
+        final_state = self.game_environment.get_state()
+
+        logger.debug(f"Final game state: \n{format_json(final_state)}")
+
+        for key, value in final_state.items():
+            self.log_key(key, value)
+
+        self.log_key("episode_score", self.compute_episode_score())
+
+        logger.info(f"[_on_after_game] Game completed")
