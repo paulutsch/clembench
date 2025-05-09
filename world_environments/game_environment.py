@@ -43,10 +43,11 @@ class GameEnvironment(ABC):
     This class follows both the Gymnasium interface and the clembench framework.
     """
 
+    # TODO: initial action_spaces and observation_spaces are currently only actually set in the GameMaster._on_setup method — remove those args from __init__?
     def __init__(
         self,
-        action_spaces: Optional[Dict[str, List[Any]]] = None,
-        observation_spaces: Optional[Dict[str, Dict[str, Any]]] = None,
+        # action_spaces: Optional[Dict[str, List[Any]]] = None,
+        # observation_spaces: Optional[Dict[str, Dict[str, Any]]] = None,
         config: Optional[Dict[str, Any]] = None,
     ):
         """
@@ -57,16 +58,17 @@ class GameEnvironment(ABC):
             observation_spaces: Dictionary of observation spaces, one key per player
         """
         super().__init__()
-        logger.info(
-            f"Initializing game environment with action spaces: {action_spaces} and observation spaces: {observation_spaces}"
-        )
+        # logger.info(
+        #     f"Initializing game environment with action spaces: {action_spaces} and observation spaces: {observation_spaces}"
+        # )
 
-        self.action_spaces = action_spaces or {}
-        self.observation_spaces = observation_spaces or {}
+        # self.action_spaces = action_spaces or {}
+        # self.observation_spaces = observation_spaces or {}
+        self.action_spaces = {}
+        self.observation_spaces = {}
 
         self.config = config or {}
 
-        # Initialize state with required fields
         self.state: GameState = {
             "current_context": "",
             "terminated": False,
@@ -74,15 +76,18 @@ class GameEnvironment(ABC):
             "aborted": False,
         }
 
-    @abstractmethod
-    def reset(self) -> Dict[str, Any]:
+    def reset(self):
         """
         Reset the environment to its initial state.
 
-        Returns:
-            Information dictionary
+        Overwrite this in your inheriting class to add functionality.
         """
-        raise NotImplementedError
+        self.state = {
+            "current_context": "",
+            "terminated": False,
+            "success": False,
+            "aborted": False,
+        }
 
     def step(
         self, player: Player, action: Dict[str, Any]
@@ -100,6 +105,15 @@ class GameEnvironment(ABC):
         """
         logger.info(f"[step] Environment step with player: {player.name}")
         logger.debug(f"[step] Action: {action}")
+
+        # TODO: alternatively, should it check for a bool that is true only if setup was done previously?
+        if (
+            not self.observation_spaces[player.name]
+            or not self.action_spaces[player.name]
+        ):
+            raise ValueError(
+                f"[step] No observation or action space for player: {player.name}"
+            )
 
         logger.debug("[step] Validating action")
         if not self._validate_action(player, action):

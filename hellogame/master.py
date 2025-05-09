@@ -63,12 +63,12 @@ class HelloGame(DialogueGameMaster):
 
         game_environment = HelloGameEnvironment()
 
-        # Initialize with the game environment
         super().__init__(
             game_name, game_path, experiment, player_models, game_environment
         )
         logger.info("[_init] HelloGame initialization complete")
 
+    # TODO: can _on_setup be generalized in the parent class? should we encapsulate adding players/config/observations/actions here? what's most intuitive for the developer?
     def _on_setup(self, **game_instance):
         """
         Called during game setup. Configure game parameters and initialize players.
@@ -79,7 +79,6 @@ class HelloGame(DialogueGameMaster):
         logger.info("[_on_setup] Setting up HelloGame")
 
         logger.debug(f"[_on_setup] Game instance: {game_instance}")
-        # TODO: this is a hack to get the target name into the game environment — is there a better way?
         self.game_environment.config = game_instance
 
         self.greeted = Greeted(game_instance["target_name"])
@@ -90,11 +89,16 @@ class HelloGame(DialogueGameMaster):
 
         # Add the players: these will be logged to the records interactions.json
         # Note: During game play the players will be called in the order added here
-        self.add_player(self.greeter, initial_content=game_instance["prompt"])
+        self.add_player(self.greeter)
         self.add_player(self.greeted)
         logger.info(
             f"[_on_setup] Added players: greeter={self.greeter.name}, greeted={self.greeted.name}"
         )
+
+        self.game_environment.set_observation_space(
+            self.greeter, game_instance["prompt"]
+        )
+        self.game_environment.set_action_space(self.greeter, ["verbal_response"])
 
     def _validate_player_response(self, player: Player, utterance: str) -> bool:
         """

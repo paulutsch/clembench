@@ -221,7 +221,7 @@ class DialogueGameMaster(GameMaster):
     def add_player(
         self,
         player: Player,
-        initial_content: str = "",
+        # initial_content: str = "",
     ):
         """Add a player to the game. The same player cannot be added twice.
         The player identity is determined by the player's name.
@@ -230,12 +230,6 @@ class DialogueGameMaster(GameMaster):
 
         Args:
             player: The player to be added to the game. The player's name must be unique.
-            initial_prompt: The initial prompt given to the player (optional). See Player for more details.
-            initial_context: A context to be immediately set for the player (optional). This is useful for initial
-                            prompts that are supposed to be handled as the first context, for example, when adding
-                            the other player's response to the prompt is not necessary, but the player is supposed
-                            to directly react to the initial prompt. Alternatively, overwrite on_before_game() and
-                            use set_context_for(player) to set the player context.
         """
         player.game_recorder = (
             self.game_recorder
@@ -251,10 +245,6 @@ class DialogueGameMaster(GameMaster):
             )
         self.players_by_names[player.name] = player
 
-        # TODO: this is a hack to get the action space and observation space for the player — is there a better way?
-        self.game_environment.set_observation_space(player, initial_content)
-        self.game_environment.set_action_space(player, ["verbal_response"])
-
     # edited this from original GameMaster class, such that it resets the game_environment
     def setup(self, **kwargs):
         """Load resources and prepare everything to play the game.
@@ -267,7 +257,6 @@ class DialogueGameMaster(GameMaster):
                 read from the game's instances.json.
         """
         self._on_setup(**kwargs)
-        # log players
         players_descriptions = collections.OrderedDict(
             GM=f"Game master for {self.game_name}"
         )
@@ -275,7 +264,6 @@ class DialogueGameMaster(GameMaster):
             players_descriptions[name] = player.get_description()
         self.log_players(players_descriptions)
 
-        # Initialize the current player
         if self.players_by_names:
             self.current_player = self.get_players()[self.current_player_idx]
 
@@ -289,7 +277,7 @@ class DialogueGameMaster(GameMaster):
             kwargs: Keyword arguments of the game instance. This is usually a game instance object
                 read from the game's instances.json.
         """
-        pass
+        raise NotImplementedError
 
     # edited this from original GameMaster class, such that it returns the game_environment's state
     def get_environment_state(self):
