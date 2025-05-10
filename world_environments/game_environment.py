@@ -13,9 +13,9 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Tuple, TypedDict, Union, cast
 
-from clemcore.clemgame.player import Player
-
 from _logger import format_json, setup_logger
+
+from .player import Player
 
 logger = setup_logger(__name__)
 

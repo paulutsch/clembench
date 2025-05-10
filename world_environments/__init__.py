@@ -7,3 +7,4 @@ separately from the game master logic.
 
 from world_environments.game_environment import GameEnvironment
 from world_environments.game_master import DialogueGameMaster, GameMaster
+from world_environments.player import Player

@@ -1,17 +1,22 @@
-import json
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 from clemcore.backends import CustomResponseModel, Model
 from clemcore.clemgame import GameBenchmark, GameScorer, GameSpec
 
 from _logger import format_json, setup_logger
-from hellogame.game_environment import HelloGameEnvironment
+from sudoku.game_environment import SudokuEnvironment
 from world_environments import DialogueGameMaster, Player
 
 logger = setup_logger(__name__)
 
 
-class HelloGame(DialogueGameMaster):
+class SudokuPlayer(Player):
+
+    def __init__(self, model: Model):
+        super().__init__(model)
+
+
+class SudokuGame(DialogueGameMaster):
     """This class implements a greeting game in which player A
     is greeting another player with a target name.
 
@@ -24,13 +29,14 @@ class HelloGame(DialogueGameMaster):
         game_path: str,
         experiment: Dict,
         player_models: List[Model],
+        grid_shape: Tuple[int, int],
     ):
         logger.info(
             f"[_init] Initializing HelloGame GameMaster with name={game_name}, path={game_path}"
         )
         logger.debug(f"[_init] Experiment parameters: {experiment}")
 
-        game_environment = HelloGameEnvironment()
+        game_environment = SudokuEnvironment(grid_shape)
 
         super().__init__(
             game_name, game_path, experiment, player_models, game_environment
@@ -50,16 +56,16 @@ class HelloGame(DialogueGameMaster):
         logger.debug(f"[_on_setup] Game instance: {game_instance}")
         self.game_environment.config = game_instance
 
-        self.greeter = Player(self.player_models[0])
-        logger.debug(f"[_on_setup] Created players: greeter={self.greeter}")
+        self.player = SudokuPlayer(self.player_models[0])
+        logger.debug(f"[_on_setup] Created player: {self.player}")
 
-        self.add_player(self.greeter)
-        logger.info(f"[_on_setup] Added players: greeter={self.greeter.name}")
+        self.add_player(self.player)
+        logger.info(f"[_on_setup] Added player: {self.player.name}")
 
         self.game_environment.set_observation_space(
-            self.greeter, game_instance["prompt"]
+            self.player, game_instance["prompt"]
         )
-        self.game_environment.set_action_space(self.greeter, ["verbal_response"])
+        self.game_environment.set_action_space(self.player, ["verbal_response"])
 
     def _validate_player_response(self, player: Player, utterance: str) -> bool:
         """
@@ -71,22 +77,19 @@ class HelloGame(DialogueGameMaster):
             f"[_validate_player_response] Validating response from {player.name}: {utterance}"
         )
 
-        if player == self.greeter:
-            is_valid = bool(utterance.strip())
-            logger.debug(
-                f"[_validate_player_response] Greeter response validation result: {is_valid}"
-            )
-            return is_valid
-
+        is_valid = bool(utterance.strip())
         logger.debug(
-            "[_validate_player_response] Greeted player response is always valid"
+            f"[_validate_player_response] Greeter response validation result: {is_valid}"
         )
-        return True
+        return is_valid
 
     def _on_valid_player_response(self, player: Player, parsed_response: str):
         logger.debug(
             f"[_on_valid_player_response] Processing valid response from {player.name}: {parsed_response}"
         )
+
+        self.game_environment.set_observation_space(self.player, parsed_response)
+        logger.debug(f"Set observation for player based on player's response")
 
     def compute_response_score(self, response: str, context: Dict):
         """
@@ -103,7 +106,7 @@ class HelloGame(DialogueGameMaster):
     def compute_episode_score(self):
         """
         Compute the overall episode score.
-        In HelloGame, this is the same as the response score.
+        In SudokuGame, this is the same as the response score.
         """
         logger.info("[_compute_episode_score] Computing episode score")
 
@@ -112,16 +115,16 @@ class HelloGame(DialogueGameMaster):
         return score
 
 
-class HelloGameScorer(GameScorer):
+class SudokuGameScorer(GameScorer):
     """
-    Scorer for the Hello Game.
+    Scorer for the Sudoku Game.
     Computes scores based on the game environment state.
     """
 
     def __init__(self, game_name: str, experiment: Dict, game_instance: Dict):
         super().__init__(game_name, experiment, game_instance)
-        self.target_name = game_instance["target_name"]
-        logger.debug(f"HelloGameScorer initialized for target: {self.target_name}")
+        self.grid_shape = game_instance["grid_shape"]
+        logger.debug(f"SudokuGameScorer initialized for grid shape: {self.grid_shape}")
 
     def compute_scores(self, episode_interactions: Dict) -> None:
         """
@@ -137,7 +140,6 @@ class HelloGameScorer(GameScorer):
 
         success = episode_interactions["success"]
         aborted = episode_interactions["aborted"]
-        missing_words = episode_interactions["missing_words"]
         episode_score = episode_interactions["episode_score"]
 
         self.log_episode_score("Success", 1 if success else 0)
@@ -146,43 +148,43 @@ class HelloGameScorer(GameScorer):
         self.log_episode_score("Aborted", 1 if aborted else 0)
         logger.debug(f"Episode aborted: {aborted}")
 
-        if missing_words:
-            missing_words_str = ", ".join(missing_words)
-            self.log_episode_score("Missing Words", missing_words_str)
-            logger.debug(f"Missing words: {missing_words_str}")
-
         self.log_episode_score("Episode Score", episode_score)
         logger.debug(f"Final episode score: {episode_score}")
 
         self.log_episode_score("bench_score", 1.0 if success else 0.0)
 
 
-class HelloGameBenchmark(GameBenchmark):
-
+class SudokuGameBenchmark(GameBenchmark):
     def __init__(self, game_spec: GameSpec):
         super().__init__(game_spec)
-        logger.info(f"HelloGameBenchmark initialized with game spec: {game_spec}")
+        logger.info(f"SudokuGameBenchmark initialized with game spec: {game_spec}")
+        # Default to 9x9 grid if not specified
+        self.grid_shape = (9, 9)
 
     def create_game_master(
         self, experiment: Dict, player_models: List[Model]
     ) -> DialogueGameMaster:
-        logger.info(f"Creating HelloGame master with experiment: {experiment}")
+        logger.info(f"Creating SudokuGame master with experiment: {experiment}")
         logger.debug(
             f"Player models: {[model.__class__.__name__ for model in player_models]}"
         )
-        return HelloGame(self.game_name, self.game_path, experiment, player_models)
+        # Get grid_shape from experiment config if available, otherwise use default
+        grid_shape = experiment.get("grid_shape", self.grid_shape)
+        return SudokuGame(
+            self.game_name, self.game_path, experiment, player_models, grid_shape
+        )
 
     def create_game_scorer(self, experiment: Dict, game_instance: Dict) -> GameScorer:
         """
-        Create a scorer for the Hello Game.
+        Create a scorer for the Sudoku Game.
 
         Args:
             experiment: Experiment configuration dictionary
             game_instance: Game instance dictionary with specific parameters
 
         Returns:
-            A HelloGameScorer instance
+            A SudokuGameScorer instance
         """
-        logger.info(f"Creating HelloGameScorer with experiment: {experiment}")
+        logger.info(f"Creating SudokuGameScorer with experiment: {experiment}")
         logger.debug(f"Game instance for scorer: \n{format_json(game_instance)}")
-        return HelloGameScorer(self.game_name, experiment, game_instance)
+        return SudokuGameScorer(self.game_name, experiment, game_instance)

@@ -19,26 +19,22 @@ Steps taken when "playing a game":
 """
 
 import collections
-import json
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 from clemcore import backends
 from clemcore.clemgame import GameResourceLocator
-from clemcore.clemgame.player import Player
 from clemcore.clemgame.recorder import NoopGameRecorder
 
 from _logger import format_json, setup_logger
 
 from .game_environment import GameEnvironment
+from .player import Player
 
 logger = setup_logger(__name__)
 
 
-# changes in the new verion of GameMaster:
-# - added a new attribute game_environment
-# - added a new method create_action_from_response
 class GameMaster(ABC):
     """Base class to contain game-specific functionality.
 

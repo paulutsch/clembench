@@ -1,0 +1,15 @@
+{
+    "experiments": [
+        {
+            "name": "sudoku_9x9",
+            "game_instances": [
+                {
+                    "game_id": 0,
+                    "prompt": "You are playing a Sudoku game. The grid is 9x9. Please solve the puzzle by filling in the missing numbers.",
+                    "grid_shape": [9, 9]
+                }
+            ],
+            "language": "en"
+        }
+    ]
+}
