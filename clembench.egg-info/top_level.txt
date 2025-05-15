@@ -12,4 +12,3 @@ referencegame
 sudoku
 taboo
 wordle
-world_environments

@@ -1,17 +1,32 @@
-import json
-from typing import Any, Dict, List
+from typing import Dict, List
 
-from clemcore.backends import CustomResponseModel, Model
-from clemcore.clemgame import GameBenchmark, GameScorer, GameSpec
+from clemcore.backends import Model
+from clemcore.clemgame import (
+    ActionSpace,
+    EnvGameMaster,
+    GameBenchmark,
+    GameScorer,
+    GameSpec,
+    Observation,
+    Player,
+)
+from clemcore.clemgame.metrics import BENCH_SCORE
+from clemcore.utils.logger import format_json, setup_logger
 
-from _logger import format_json, setup_logger
 from hellogame.game_environment import HelloGameEnvironment
-from world_environments import DialogueGameMaster, Player
 
 logger = setup_logger(__name__)
 
 
-class HelloGame(DialogueGameMaster):
+class HelloGamePlayer(Player):
+    def __init__(self, model: Model):
+        super().__init__(model)
+
+    def _custom_response(self, context: Dict) -> str:
+        return "Hello, how are you?"
+
+
+class HelloGame(EnvGameMaster):
     """This class implements a greeting game in which player A
     is greeting another player with a target name.
 
@@ -50,16 +65,23 @@ class HelloGame(DialogueGameMaster):
         logger.debug(f"[_on_setup] Game instance: {game_instance}")
         self.game_environment.config = game_instance
 
-        self.greeter = Player(self.player_models[0])
+        self.greeter = HelloGamePlayer(self.player_models[0])
         logger.debug(f"[_on_setup] Created players: greeter={self.greeter}")
 
         self.add_player(self.greeter)
         logger.info(f"[_on_setup] Added players: greeter={self.greeter.name}")
 
-        self.game_environment.set_observation_space(
-            self.greeter, game_instance["prompt"]
-        )
-        self.game_environment.set_action_space(self.greeter, ["verbal_response"])
+        greeter_observation: Observation = {
+            "role": "user",
+            "prompt": game_instance["prompt"],
+        }
+        initial_observations: Dict[str, Observation] = {
+            self.greeter.name: greeter_observation
+        }
+        initial_action_spaces: Dict[str, ActionSpace] = {
+            self.greeter.name: ["verbal_response"]
+        }
+        self.game_environment.reset(initial_observations, initial_action_spaces)
 
     def _validate_player_response(self, player: Player, utterance: str) -> bool:
         """
@@ -82,11 +104,6 @@ class HelloGame(DialogueGameMaster):
             "[_validate_player_response] Greeted player response is always valid"
         )
         return True
-
-    def _on_valid_player_response(self, player: Player, parsed_response: str):
-        logger.debug(
-            f"[_on_valid_player_response] Processing valid response from {player.name}: {parsed_response}"
-        )
 
     def compute_response_score(self, response: str, context: Dict):
         """
@@ -154,7 +171,7 @@ class HelloGameScorer(GameScorer):
         self.log_episode_score("Episode Score", episode_score)
         logger.debug(f"Final episode score: {episode_score}")
 
-        self.log_episode_score("bench_score", 1.0 if success else 0.0)
+        self.log_episode_score(BENCH_SCORE, 100.0 if success else 0.0)
 
 
 class HelloGameBenchmark(GameBenchmark):
@@ -165,7 +182,7 @@ class HelloGameBenchmark(GameBenchmark):
 
     def create_game_master(
         self, experiment: Dict, player_models: List[Model]
-    ) -> DialogueGameMaster:
+    ) -> EnvGameMaster:
         logger.info(f"Creating HelloGame master with experiment: {experiment}")
         logger.debug(
             f"Player models: {[model.__class__.__name__ for model in player_models]}"

@@ -2,19 +2,22 @@
 Hello Game Environment - implements the GameEnvironment interface for the Hello Game.
 """
 
-import json
 import string
-from typing import Any, Dict, List, Tuple
+from typing import Dict, List
 
+from clemcore.clemgame import (
+    Action,
+    ActionSpace,
+    GameEnvironment,
+    GameState,
+    Observation,
+)
 from clemcore.clemgame.player import Player
-
-from _logger import format_json, setup_logger
-from world_environments.game_environment import GameEnvironment, GameState
+from clemcore.utils.logger import format_json, setup_logger
 
 logger = setup_logger(__name__)
 
 
-# Example of how to extend GameState for a specific game:
 class HelloGameState(GameState):
     """Example of extending GameState for a specific game.
 
@@ -28,9 +31,15 @@ class HelloGameState(GameState):
     missing_words: List[str]
 
 
+class HelloGameAction(Action):
+    """Action for the HelloGame."""
+
+    message: str  # the conversational response of the greeter
+
+
 class HelloGameEnvironment(GameEnvironment):
     """
-    Environment for the Hello Game where one player greets another.
+    Environment for the HelloGame in which one player greets the other.
 
     This environment tracks:
     - Required greeting words
@@ -38,9 +47,17 @@ class HelloGameEnvironment(GameEnvironment):
     - Game success/failure status
     """
 
-    def reset(self):
+    def reset(
+        self,
+        initial_observations: Dict[str, Observation],
+        initial_action_spaces: Dict[str, ActionSpace],
+    ):
         """
-        Reset the environment to its initial state.
+        Reset the environment to an initial state.
+
+        Args:
+            initial_observations: Dictionary of initial observations
+            initial_action_spaces: Dictionary of initial action spaces
 
         Returns:
             Tuple containing:
@@ -48,6 +65,8 @@ class HelloGameEnvironment(GameEnvironment):
                 - Information dictionary
         """
         logger.info("[reset] Resetting environment")
+        self.observations = initial_observations
+        self.action_spaces = initial_action_spaces
 
         target_name = self.config["target_name"]
 
@@ -58,80 +77,34 @@ class HelloGameEnvironment(GameEnvironment):
             "missing_words": [],
             "success": False,
             "aborted": False,
-            "current_context": "",
             "terminated": False,
         }
         logger.debug(f"[reset] Reset state — new state: \n{format_json(self.state)}")
 
-        self.player_observations = {}
-        logger.debug("[reset] Reset player observations")
-
         logger.info("[reset] Environment reset complete")
 
-    def step(
-        self, player: Player, action: Dict[str, Any]
-    ) -> Tuple[Dict[str, Any], float, bool]:
+    def update_observation(self, player: Player):
         """
-        Take a step in the environment using the provided action from a specific player.
-
-        Args:
-            player: The player making the action
-            action: Action dictionary with:
-                - action_type: Type of action (always 'text' for this game)
-                - text: The greeting text from the player
-
-        Returns:
-            Tuple containing:
-                - Next observation
-                - Reward value (1.0 for success, 0.0 for failure)
-                - Whether the episode is terminated
-                - Information dictionary
+        Update the observation for a specific player.
         """
-        logger.info(
-            f"[step] Environment step with player: {player.name} and action: {action}"
-        )
-
-        action_body = action["body"]
-        logger.debug(f"[step] Action body: {action_body}")
-
-        logger.debug("[step] Validating response")
-        self._validate_action(player, action)
-        self._update_state_through_action(player, action)
-
-        logger.debug(f"[step] Game state: \n{format_json(self.state)}")
-        if self.state["aborted"]:
-            logger.warning(f"[step] Game aborted: {action_body}")
-        elif self.state["success"]:
-            logger.info(f"[step] Successful step: {action_body}")
-        else:
-            missing = ",".join(self.state["missing_words"])
-            logger.warning(f"[step] Unsuccessful step: {missing}")
-
-        observation = {
-            "context": self.state["current_context"],
-            "success": self.state["success"],
+        observation: Observation = {
+            "role": "user",
+            "prompt": (
+                "You won the game!" if self.state["success"] else "You lost the game!"
+            ),
         }
+        self.observations[player.name] = observation
         logger.debug(f"[step] Observation: \n{format_json(observation)}")
 
-        self.set_observation_space(player, observation["context"])
-        logger.debug(
-            f"[step] Updated observation for player: {player.name if hasattr(player, 'name') else 'unknown'}"
-        )
-
-        self.state["terminated"] = True  # HelloGame only has one round
-        logger.debug(f"[step] Game terminated: {self.state['terminated']}")
-
-        return observation, self.state["success"], self.state["terminated"]
-
-    def _update_state_through_action(self, player: Player, action: Dict[str, Any]):
+    def _do_update_state(self, player: Player, action: HelloGameAction):
         """
         Update the state based on the action.
         """
-        response = action["body"]
-        self.state["current_context"] = response
+        response = action["message"]
 
         self.state["aborted"] = False
         self.state["success"] = True
+        self.state["terminated"] = True
 
         if not response.startswith("GREET:"):
             logger.warning(
@@ -139,7 +112,7 @@ class HelloGameEnvironment(GameEnvironment):
             )
             self.state["aborted"] = True
             self.state["success"] = False
-            return False
+            self.state["terminated"] = True
 
         response_lower = response.lower()
         response_clean = response_lower.translate(
@@ -154,14 +127,7 @@ class HelloGameEnvironment(GameEnvironment):
                     f"[_validate_action] Missing required word: {required_word}"
                 )
                 self.state["success"] = False
+                self.state["terminated"] = True
                 missing_words.append(required_word)
 
         self.state["missing_words"] = missing_words
-
-        if not missing_words:
-            logger.info("[_validate_action] All required words found in response")
-        else:
-            logger.warning(
-                f"[_validate_action] Missing words in response: {missing_words}"
-            )
-            self.state["terminated"] = True

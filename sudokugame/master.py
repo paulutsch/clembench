@@ -1,11 +1,23 @@
-from typing import Any, Dict, List, Tuple
+from typing import Dict, List, Tuple
 
-from clemcore.backends import CustomResponseModel, Model
-from clemcore.clemgame import GameBenchmark, GameScorer, GameSpec
+from clemcore.backends import Model
+from clemcore.clemgame import (
+    Action,
+    ActionSpace,
+    EnvGameMaster,
+    GameBenchmark,
+    GameScorer,
+    GameSpec,
+    Observation,
+    Player,
+)
+from clemcore.utils.logger import format_json, setup_logger
 
-from _logger import format_json, setup_logger
-from sudoku.game_environment import SudokuEnvironment
-from world_environments import DialogueGameMaster, Player
+from sudokugame.game_environment import (
+    SudokuAction,
+    SudokuEnvironment,
+    SudokuObservation,
+)
 
 logger = setup_logger(__name__)
 
@@ -15,13 +27,12 @@ class SudokuPlayer(Player):
     def __init__(self, model: Model):
         super().__init__(model)
 
+    def _custom_response(self, context: Dict) -> str:
+        return "Hello, world!"
 
-class SudokuGame(DialogueGameMaster):
-    """This class implements a greeting game in which player A
-    is greeting another player with a target name.
 
-    This version uses the GameEnvironment approach for state management.
-    """
+class SudokuGame(EnvGameMaster):
+    """Game master for the Sudoku game."""
 
     def __init__(
         self,
@@ -29,21 +40,23 @@ class SudokuGame(DialogueGameMaster):
         game_path: str,
         experiment: Dict,
         player_models: List[Model],
-        grid_shape: Tuple[int, int],
+        board_size: int,
+        difficulty: float,
     ):
         logger.info(
-            f"[_init] Initializing HelloGame GameMaster with name={game_name}, path={game_path}"
+            f"[_init] Initializing SudokuGame GameMaster with name={game_name}, path={game_path}"
         )
         logger.debug(f"[_init] Experiment parameters: {experiment}")
 
-        game_environment = SudokuEnvironment(grid_shape)
+        self.game_environment: SudokuEnvironment = SudokuEnvironment(
+            board_size, difficulty
+        )
 
         super().__init__(
-            game_name, game_path, experiment, player_models, game_environment
+            game_name, game_path, experiment, player_models, self.game_environment
         )
-        logger.info("[_init] HelloGame initialization complete")
+        logger.info("[_init] SudokuGame initialization complete")
 
-    # TODO: can _on_setup be generalized in the parent class? should we encapsulate adding players/config/observations/actions here? what's most intuitive for the developer?
     def _on_setup(self, **game_instance):
         """
         Called during game setup. Configure game parameters and initialize players.
@@ -51,7 +64,7 @@ class SudokuGame(DialogueGameMaster):
         Args:
             game_instance: Game instance parameters from instances.json
         """
-        logger.info("[_on_setup] Setting up HelloGame")
+        logger.info("[_on_setup] Setting up SudokuGame")
 
         logger.debug(f"[_on_setup] Game instance: {game_instance}")
         self.game_environment.config = game_instance
@@ -62,38 +75,79 @@ class SudokuGame(DialogueGameMaster):
         self.add_player(self.player)
         logger.info(f"[_on_setup] Added player: {self.player.name}")
 
-        self.game_environment.set_observation_space(
-            self.player, game_instance["prompt"]
-        )
-        self.game_environment.set_action_space(self.player, ["verbal_response"])
+        player_observation: SudokuObservation = {
+            "role": "user",
+            "prompt": game_instance["prompt"],
+            "board": self.game_environment.state["board"],
+        }
+        initial_observations: Dict[str, Observation] = {
+            self.player.name: player_observation,
+        }
+        initial_action_spaces: Dict[str, ActionSpace] = {
+            self.player.name: ["fill_cell"]
+        }
+        self.game_environment.reset(initial_observations, initial_action_spaces)
 
     def _validate_player_response(self, player: Player, utterance: str) -> bool:
         """
         Validate the player's response.
 
-        Will be called in GameMaster.play(), after the response is received, and before it is parsed.
+        Args:
+            player: The player making the response
+            utterance: The player's response
+
+        Returns:
+            bool: Whether the response is valid
         """
         logger.debug(
             f"[_validate_player_response] Validating response from {player.name}: {utterance}"
         )
 
-        is_valid = bool(utterance.strip())
-        logger.debug(
-            f"[_validate_player_response] Greeter response validation result: {is_valid}"
-        )
-        return is_valid
+        # check if the response is in the correct format
+        # example response: "1 2 3"
+        try:
+            row, col, value = map(int, utterance.strip().split())
+            if not (
+                0 <= row < self.game_environment.board_size * 3
+                and 0 <= col < self.game_environment.board_size * 3
+                and 0 <= value < self.game_environment.board_size
+            ):
+                return False
+            return True
+        except (ValueError, TypeError):
+            return False
 
-    def _on_valid_player_response(self, player: Player, parsed_response: str):
-        logger.debug(
-            f"[_on_valid_player_response] Processing valid response from {player.name}: {parsed_response}"
-        )
+    def parse_action_from_response(self, response: str) -> SudokuAction:
+        """Create an action from a player's response.
 
-        self.game_environment.set_observation_space(self.player, parsed_response)
-        logger.debug(f"Set observation for player based on player's response")
+        Default: return action
 
-    def compute_response_score(self, response: str, context: Dict):
+        Args:
+            response: The textual response from the player
+            action_type: The type of action to create
+
+        Returns:
+            {"action_type": "fill_cell", "row": row, "col": col, "value": value}
+        """
+        row, col, value = map(int, response.strip().split())
+        action: SudokuAction = {
+            "action_type": "fill_cell",
+            "row": row,
+            "col": col,
+            "value": value,
+        }
+        return action
+
+    def compute_response_score(self, response: str, context: Dict) -> float:
         """
         Compute a score for the player's response based on the environment state.
+
+        Args:
+            response: The player's response
+            context: Additional context for scoring
+
+        Returns:
+            float: The score for the response
         """
         logger.debug(
             f"[_compute_response_score] Computing response score for response: {response}"
@@ -103,10 +157,13 @@ class SudokuGame(DialogueGameMaster):
         logger.debug(f"[_compute_response_score] Response score: {score}")
         return score
 
-    def compute_episode_score(self):
+    def compute_episode_score(self) -> float:
         """
         Compute the overall episode score.
         In SudokuGame, this is the same as the response score.
+
+        Returns:
+            float: The episode score
         """
         logger.info("[_compute_episode_score] Computing episode score")
 
@@ -163,15 +220,21 @@ class SudokuGameBenchmark(GameBenchmark):
 
     def create_game_master(
         self, experiment: Dict, player_models: List[Model]
-    ) -> DialogueGameMaster:
+    ) -> SudokuGame:
         logger.info(f"Creating SudokuGame master with experiment: {experiment}")
         logger.debug(
             f"Player models: {[model.__class__.__name__ for model in player_models]}"
         )
         # Get grid_shape from experiment config if available, otherwise use default
-        grid_shape = experiment.get("grid_shape", self.grid_shape)
+        board_size = experiment.get("board_size", 3)
+        difficulty = experiment.get("difficulty", 0.5)
         return SudokuGame(
-            self.game_name, self.game_path, experiment, player_models, grid_shape
+            self.game_name,
+            self.game_path,
+            experiment,
+            player_models,
+            board_size,
+            difficulty,
         )
 
     def create_game_scorer(self, experiment: Dict, game_instance: Dict) -> GameScorer:

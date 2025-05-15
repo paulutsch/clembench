@@ -10,4 +10,3 @@ privateshared
 referencegame
 taboo
 wordle
-world_environments
