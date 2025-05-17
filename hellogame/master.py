@@ -73,7 +73,7 @@ class HelloGame(EnvGameMaster):
 
         greeter_observation: Observation = {
             "role": "user",
-            "prompt": game_instance["prompt"],
+            "content": game_instance["prompt"],
         }
         initial_observations: Dict[str, Observation] = {
             self.greeter.name: greeter_observation

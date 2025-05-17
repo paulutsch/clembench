@@ -1,7 +1,7 @@
 {
-    "game_name": "sudoku",
+    "game_name": "sudokugame",
     "description": "Sudoku game",
-    "main_game": "sudoku",
+    "main_game": "sudokugame",
     "players": "one",
     "image": "none",
     "languages": ["en"],

@@ -1,5 +1,6 @@
 from typing import Dict, List, Tuple
 
+import numpy as np
 from clemcore.backends import Model
 from clemcore.clemgame import (
     Action,
@@ -17,18 +18,10 @@ from sudokugame.game_environment import (
     SudokuAction,
     SudokuEnvironment,
     SudokuObservation,
+    SudokuPlayer,
 )
 
 logger = setup_logger(__name__)
-
-
-class SudokuPlayer(Player):
-
-    def __init__(self, model: Model):
-        super().__init__(model)
-
-    def _custom_response(self, context: Dict) -> str:
-        return "Hello, world!"
 
 
 class SudokuGame(EnvGameMaster):
@@ -75,10 +68,15 @@ class SudokuGame(EnvGameMaster):
         self.add_player(self.player)
         logger.info(f"[_on_setup] Added player: {self.player.name}")
 
+        self.game_environment.base_prompt = game_instance["prompt"]
+
+        board = self.game_environment.format_board(
+            np.array(self.game_environment.state["board"])
+        )
         player_observation: SudokuObservation = {
             "role": "user",
-            "prompt": game_instance["prompt"],
-            "board": self.game_environment.state["board"],
+            "content": game_instance["prompt"] + "\n\n" + board,
+            "board": board,
         }
         initial_observations: Dict[str, Observation] = {
             self.player.name: player_observation,
@@ -99,23 +97,7 @@ class SudokuGame(EnvGameMaster):
         Returns:
             bool: Whether the response is valid
         """
-        logger.debug(
-            f"[_validate_player_response] Validating response from {player.name}: {utterance}"
-        )
-
-        # check if the response is in the correct format
-        # example response: "1 2 3"
-        try:
-            row, col, value = map(int, utterance.strip().split())
-            if not (
-                0 <= row < self.game_environment.board_size * 3
-                and 0 <= col < self.game_environment.board_size * 3
-                and 0 <= value < self.game_environment.board_size
-            ):
-                return False
-            return True
-        except (ValueError, TypeError):
-            return False
+        return True
 
     def parse_action_from_response(self, response: str) -> SudokuAction:
         """Create an action from a player's response.
@@ -180,8 +162,6 @@ class SudokuGameScorer(GameScorer):
 
     def __init__(self, game_name: str, experiment: Dict, game_instance: Dict):
         super().__init__(game_name, experiment, game_instance)
-        self.grid_shape = game_instance["grid_shape"]
-        logger.debug(f"SudokuGameScorer initialized for grid shape: {self.grid_shape}")
 
     def compute_scores(self, episode_interactions: Dict) -> None:
         """
@@ -195,28 +175,30 @@ class SudokuGameScorer(GameScorer):
             f"Computing scores for episode interactions: \n{format_json(episode_interactions)}"
         )
 
-        success = episode_interactions["success"]
-        aborted = episode_interactions["aborted"]
+        success = 1 if episode_interactions["success"] else 0
+        aborted = 1 if episode_interactions["aborted"] else 0
         episode_score = episode_interactions["episode_score"]
 
-        self.log_episode_score("Success", 1 if success else 0)
-        logger.debug(f"Episode success: {success}")
+        self.log_episode_score("Success", success)
+        logger.info(f"Episode success: {success}")
 
-        self.log_episode_score("Aborted", 1 if aborted else 0)
-        logger.debug(f"Episode aborted: {aborted}")
+        self.log_episode_score("Aborted", aborted)
+        logger.info(f"Episode aborted: {aborted}")
 
         self.log_episode_score("Episode Score", episode_score)
-        logger.debug(f"Final episode score: {episode_score}")
+        logger.info(f"Final episode score: {episode_score}")
 
-        self.log_episode_score("bench_score", 1.0 if success else 0.0)
+        # bench score based on following instructions (not aborted) and winning (success)
+        not_aborted = 1 if not aborted else 0
+        bench_score = (not_aborted + success) / 2
+        self.log_episode_score("bench_score", bench_score)
+        logger.info(f"Final bench score: {bench_score}")
 
 
 class SudokuGameBenchmark(GameBenchmark):
     def __init__(self, game_spec: GameSpec):
         super().__init__(game_spec)
         logger.info(f"SudokuGameBenchmark initialized with game spec: {game_spec}")
-        # Default to 9x9 grid if not specified
-        self.grid_shape = (9, 9)
 
     def create_game_master(
         self, experiment: Dict, player_models: List[Model]
@@ -225,7 +207,6 @@ class SudokuGameBenchmark(GameBenchmark):
         logger.debug(
             f"Player models: {[model.__class__.__name__ for model in player_models]}"
         )
-        # Get grid_shape from experiment config if available, otherwise use default
         board_size = experiment.get("board_size", 3)
         difficulty = experiment.get("difficulty", 0.5)
         return SudokuGame(

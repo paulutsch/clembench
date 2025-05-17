@@ -89,7 +89,7 @@ class HelloGameEnvironment(GameEnvironment):
         """
         observation: Observation = {
             "role": "user",
-            "prompt": (
+            "content": (
                 "You won the game!" if self.state["success"] else "You lost the game!"
             ),
         }

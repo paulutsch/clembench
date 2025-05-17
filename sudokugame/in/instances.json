@@ -5,7 +5,7 @@
             "game_instances": [
                 {
                     "game_id": 0,
-                    "prompt": "You are playing a Sudoku game. See the board below. Fill in the next number on your road to solve the puzzle. Answer in the following format: '<row> <col> <value>', example: '0 0 1'",
+                    "prompt": "You are playing a Sudoku game. See the board below. Fill in the next number on your road to solve the puzzle, by replacing any of the 0s with the correct number. Answer in the following format: '<row> <col> <value>', example: '0 0 1'. Return nothing but the '<row> <col> <value>', otherwise the parsing won't work.",
                     "board_size": 3,
                     "difficulty": 0.5
                 }
