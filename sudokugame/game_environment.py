@@ -103,9 +103,15 @@ class SudokuEnvironment(GameEnvironment):
             )
             return False
 
-        block_row = (row // 3) * 3
-        block_col = (col // 3) * 3
-        if value in grid_np[block_row : block_row + 3, block_col : block_col + 3]:
+        block_size = self.board_size
+        block_row = (row // block_size) * block_size
+        block_col = (col // block_size) * block_size
+        if (
+            value
+            in grid_np[
+                block_row : block_row + block_size, block_col : block_col + block_size
+            ]
+        ):
             logger.warning(
                 f"[_is_board_valid] Value {value} already in block {block_row} {block_col}"
             )

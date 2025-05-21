@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 from clemcore.backends import Model
@@ -12,6 +12,7 @@ from clemcore.clemgame import (
     Observation,
     Player,
 )
+from clemcore.clemgame.metrics import BENCH_SCORE
 from clemcore.utils.logger import format_json, setup_logger
 
 from sudokugame.game_environment import (
@@ -33,21 +34,13 @@ class SudokuGame(EnvGameMaster):
         game_path: str,
         experiment: Dict,
         player_models: List[Model],
-        board_size: int,
-        difficulty: float,
     ):
         logger.info(
             f"[_init] Initializing SudokuGame GameMaster with name={game_name}, path={game_path}"
         )
         logger.debug(f"[_init] Experiment parameters: {experiment}")
 
-        self.game_environment: SudokuEnvironment = SudokuEnvironment(
-            board_size, difficulty
-        )
-
-        super().__init__(
-            game_name, game_path, experiment, player_models, self.game_environment
-        )
+        super().__init__(game_name, game_path, experiment, player_models)
         logger.info("[_init] SudokuGame initialization complete")
 
     def _on_setup(self, **game_instance):
@@ -60,6 +53,13 @@ class SudokuGame(EnvGameMaster):
         logger.info("[_on_setup] Setting up SudokuGame")
 
         logger.debug(f"[_on_setup] Game instance: {game_instance}")
+
+        board_size = game_instance["board_size"]
+        difficulty = game_instance["difficulty"]
+        logger.info(f"[_on_setup] Board size: {board_size}, Difficulty: {difficulty}")
+
+        self.game_environment = SudokuEnvironment(board_size, difficulty)
+        logger.info(f"[_on_setup] Game environment: {self.game_environment}")
         self.game_environment.config = game_instance
 
         self.player = SudokuPlayer(self.player_models[0])
@@ -191,7 +191,7 @@ class SudokuGameScorer(GameScorer):
         # bench score based on following instructions (not aborted) and winning (success)
         not_aborted = 1 if not aborted else 0
         bench_score = (not_aborted + success) / 2
-        self.log_episode_score("bench_score", bench_score)
+        self.log_episode_score(BENCH_SCORE, bench_score)
         logger.info(f"Final bench score: {bench_score}")
 
 
@@ -207,15 +207,11 @@ class SudokuGameBenchmark(GameBenchmark):
         logger.debug(
             f"Player models: {[model.__class__.__name__ for model in player_models]}"
         )
-        board_size = experiment.get("board_size", 3)
-        difficulty = experiment.get("difficulty", 0.5)
         return SudokuGame(
             self.game_name,
             self.game_path,
             experiment,
             player_models,
-            board_size,
-            difficulty,
         )
 
     def create_game_scorer(self, experiment: Dict, game_instance: Dict) -> GameScorer:
