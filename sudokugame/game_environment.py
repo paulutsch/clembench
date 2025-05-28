@@ -71,6 +71,7 @@ class SudokuEnvironment(GameEnvironment):
             success=False,
             aborted=False,
             board=self.original_board.tolist(),
+            moves=0,
         )
 
     def reset(
@@ -84,6 +85,7 @@ class SudokuEnvironment(GameEnvironment):
             success=False,
             aborted=False,
             board=self.original_board.tolist(),
+            moves=0,
         )
 
     def _is_board_valid(
@@ -169,13 +171,16 @@ class SudokuEnvironment(GameEnvironment):
 
         logger.info(f"[_do_update_state] Board is valid, action: {action}")
 
-    def update_observation(self, player: SudokuPlayer):
-        self.observations[player.name]["board"] = self.format_board(
-            np.array(self.state["board"])
-        )
-        self.observations[player.name]["content"] = (
-            self.base_prompt + "\n\n" + self.format_board(np.array(self.state["board"]))
-        )
+    def update_observations(self):
+        for player in self.players:
+            self.observations[player.name]["board"] = self.format_board(
+                np.array(self.state["board"])
+            )
+            self.observations[player.name]["content"] = (
+                "The new board is:\n\n"
+                + self.format_board(np.array(self.state["board"]))
+                + "\n\nMake your next move in the format described before."
+            )
 
     def format_board(self, board: np.ndarray) -> str:
         """Format the Sudoku board with box separators using | and - characters."""
