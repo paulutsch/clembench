@@ -54,6 +54,7 @@ class TicTacToeEnvironment(GameEnvironment):
             terminated=False,
             aborted=False,
             winner=None,
+            moves=0,
         )
         self.base_prompt = ""
         self.config = {}
@@ -76,6 +77,7 @@ class TicTacToeEnvironment(GameEnvironment):
             terminated=False,
             aborted=False,
             winner=None,
+            moves=0,
         )
 
     def format_board(self, board: list[list[Literal["X", "O", " "]]]) -> str:
@@ -156,13 +158,21 @@ class TicTacToeEnvironment(GameEnvironment):
     def update_observations(self) -> None:
         """Update the observation for all players."""
         for player in self.players:
-            prompt = (
-                self.base_prompt
-                + f"\n\nYou are the player that plays {player.symbol}.\n\n"
-                + "The current board is:\n\n"
-                + self.format_board(self.state["board"])
-            )
-            self.observations[player.name]["content"] = prompt
+            if self.state["moves"] > 0:
+                prompt = (
+                    "The other player made a move. The new board is:\n\n"
+                    + self.format_board(self.state["board"])
+                    + "\n\nMake your next move in the format described before."
+                )
+                self.observations[player.name]["content"] = prompt
+            else:
+                prompt = (
+                    self.base_prompt
+                    + f"\n\nYou are the player that plays {player.symbol}.\n\n"
+                    + "The current board is:\n\n"
+                    + self.format_board(self.state["board"])
+                )
+                self.observations[player.name]["content"] = prompt
 
     def _do_update_state(
         self, player: TicTacToePlayer, action: TicTacToeAction

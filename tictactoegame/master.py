@@ -72,11 +72,15 @@ class TicTacToeGame(EnvGameMaster):
         board = self.game_environment.format_board(self.game_environment.state["board"])
         player_x_observation: TicTacToeObservation = {
             "role": "user",
-            "content": game_instance["prompt"] + "\n\n" + board,
+            "content": game_instance["prompt"]
+            + "\n\nYou are the player that plays X.\n\n"
+            + board,
         }
         player_o_observation: TicTacToeObservation = {
             "role": "user",
-            "content": game_instance["prompt"] + "\n\n" + board,
+            "content": game_instance["prompt"]
+            + "\n\nYou are the player that plays O.\n\n"
+            + board,
         }
         initial_observations: Dict[str, Observation] = {
             self.player_x.name: player_x_observation,
