@@ -37,7 +37,7 @@ class TicTacToePlayer(Player):
 
 
 class TicTacToeGameState(GameState):
-    board: list[list[Literal["X", "O", " "]]]
+    board: list[list[Literal["X", "O", "▢"]]]
     current_player: int
     winner: Optional[int]
 
@@ -48,7 +48,7 @@ class TicTacToeEnvironment(GameEnvironment):
     def __init__(self):
         super().__init__()
         self.state: TicTacToeGameState = TicTacToeGameState(
-            board=[[" " for _ in range(3)] for _ in range(3)],
+            board=[["▢" for _ in range(3)] for _ in range(3)],
             current_player=1,  # 1 for X, 2 for O
             success=False,
             terminated=False,
@@ -71,7 +71,7 @@ class TicTacToeEnvironment(GameEnvironment):
         """Reset the game environment."""
         super().reset(initial_observations, initial_action_spaces)
         self.state: TicTacToeGameState = TicTacToeGameState(
-            board=[[" " for _ in range(3)] for _ in range(3)],
+            board=[["▢" for _ in range(3)] for _ in range(3)],
             current_player=1,  # 1 for X, 2 for O
             success=False,
             terminated=False,
@@ -80,7 +80,7 @@ class TicTacToeEnvironment(GameEnvironment):
             moves=0,
         )
 
-    def format_board(self, board: list[list[Literal["X", "O", " "]]]) -> str:
+    def format_board(self, board: list[list[Literal["X", "O", "▢"]]]) -> str:
         """Format the board for display with ASCII grid."""
         board_str = ""
         for i in range(3):
@@ -103,7 +103,7 @@ class TicTacToeEnvironment(GameEnvironment):
 
         row_is_valid = 0 <= row < 3
         col_is_valid = 0 <= col < 3
-        cell_is_empty = self.state["board"][row][col] == " "
+        cell_is_empty = self.state["board"][row][col] == "▢"
 
         logger.info(
             f"Row is valid: {row_is_valid}, Col is valid: {col_is_valid}, Cell is empty: {cell_is_empty}"
@@ -146,7 +146,7 @@ class TicTacToeEnvironment(GameEnvironment):
             self.state["success"] = True
             return
 
-        if np.all(board != " "):
+        if np.all(board != "▢"):
             logger.info("Draw")
             self.state["terminated"] = True
             self.state["winner"] = 0  # draw

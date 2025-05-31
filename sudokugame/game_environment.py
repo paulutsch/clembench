@@ -196,7 +196,7 @@ class SudokuEnvironment(GameEnvironment):
                 row.append(val)
                 if (j + 1) % box_size == 0 and j < board_size - 1:
                     row.append("|")
-            output.append(" ".join(row))
+            output.append("▢".join(row))
 
             if (i + 1) % box_size == 0 and i < board_size - 1:
                 output.append("-" * (board_size * 2 + 2))
