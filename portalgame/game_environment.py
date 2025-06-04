@@ -22,8 +22,7 @@ class PortalAction(Action):
     """Action for the Portal game."""
 
     action_type: str
-    direction: Optional[str]  # 'n', 's', 'e', 'w'
-    target: Optional[Tuple[int, int]]  # for inspect/use actions
+    direction: str  # 'n', 's', 'e', 'w'
 
 
 class PortalObservation(GridObservation):
@@ -55,12 +54,9 @@ class PortalGameEnvironment(GridEnvironment):
         self.action_spaces: Dict[str, ActionSpace] = {}
         self.base_prompt = ""
         self.config = {}
+        self.explored: Dict[str, List[List[bool]]] = {}
 
-    def reset(
-        self,
-        # initial_observations: Dict[str, PortalObservation],
-        # initial_action_spaces: Dict[str, ActionSpace],
-    ) -> None:
+    def reset(self) -> None:
         """Reset the game environment."""
         self.state = PortalGameState(
             grid=[
@@ -79,6 +75,17 @@ class PortalGameEnvironment(GridEnvironment):
 
         self._construct_grid()
 
+        self.explored = {
+            player.name: [
+                [False for _ in range(self.grid_size)] for _ in range(self.grid_size)
+            ]
+            for player in self.players
+        }
+        for player in self.players:
+            self._mark_explored(
+                player.name, self.state["player_positions"][player.name]
+            )
+
         self.base_prompt = self.config["prompt"]
 
         # Initialize the environment with the grid configuration
@@ -90,12 +97,12 @@ class PortalGameEnvironment(GridEnvironment):
                 + "You initially see the following grid layout:\n"
                 + self.format_grid(
                     self.state["grid"],
-                    self.state["player_positions"][self.players[0].name],
+                    self.players[0].name,
                 )
             ),
             "grid": self.format_grid(
                 self.state["grid"],
-                self.state["player_positions"][self.players[0].name],
+                self.players[0].name,
             ),
         }
         initial_observations: Dict[str, PortalObservation] = {
@@ -142,12 +149,7 @@ class PortalGameEnvironment(GridEnvironment):
             )
 
         player_start = grid_config.get("player_start", (0, 0))
-        if player_start:
-            row, col = player_start
-            self.state["grid"][row][col] = GridCell(
-                object=PlayerObject(position=(row, col), player=self.players[0]),
-                position=(row, col),
-            )
+
         self.state["player_positions"][self.players[0].name] = tuple(player_start)
 
     def _is_valid_move(self, pos: Tuple[int, int], direction: str) -> bool:
@@ -165,87 +167,101 @@ class PortalGameEnvironment(GridEnvironment):
             return False
 
         new_row, new_col = new_pos
+        # check if the new position is within the grid
         if not (0 <= new_row < self.grid_size and 0 <= new_col < self.grid_size):
             return False
 
+        # check if the new position is a wall
         cell = self.state["grid"][new_row][new_col]
-        if cell["object"] == Wall:
-            return False
-        if isinstance(cell["object"], ProjectedWall) and cell["object"].is_visible:
+        if isinstance(cell["object"], Wall):
             return False
 
         return True
 
+    def _mark_explored(self, player_name: str, pos: Tuple[int, int]) -> None:
+        """Mark cells around a position as explored for the given player."""
+        row, col = pos
+        for i in range(row - 1, row + 2):
+            for j in range(col - 1, col + 2):
+                if 0 <= i < self.grid_size and 0 <= j < self.grid_size:
+                    self.explored[player_name][i][j] = True
+
     def _do_update_state(self, player: Player, action: PortalAction) -> None:
         """Update the game state based on the action."""
-        action_type = action.get("action_type")
+        direction = action.get("direction")
 
-        if action_type == "move":
-            direction = action.get("direction")
-            if not direction or not self._is_valid_move(
-                self.state["player_positions"][player.name], direction
-            ):
-                self.state["terminated"] = True
-                self.state["success"] = False
-                self.state["aborted"] = True
-                return
+        row, col = self.state["player_positions"][player.name]
+        if direction == "n":
+            self.state["player_positions"][player.name] = (row - 1, col)
+        elif direction == "s":
+            self.state["player_positions"][player.name] = (row + 1, col)
+        elif direction == "e":
+            self.state["player_positions"][player.name] = (row, col + 1)
+        elif direction == "w":
+            self.state["player_positions"][player.name] = (row, col - 1)
 
-            row, col = self.state["player_positions"][player.name]
-            if direction == "n":
-                self.state["player_positions"][player.name] = (row - 1, col)
-            elif direction == "s":
-                self.state["player_positions"][player.name] = (row + 1, col)
-            elif direction == "e":
-                self.state["player_positions"][player.name] = (row, col + 1)
-            elif direction == "w":
-                self.state["player_positions"][player.name] = (row, col - 1)
+        self._mark_explored(player.name, self.state["player_positions"][player.name])
 
-            current_cell = self.state["grid"][
-                self.state["player_positions"][player.name][0]
-            ][self.state["player_positions"][player.name][1]]
+        current_cell = self.state["grid"][
+            self.state["player_positions"][player.name][0]
+        ][self.state["player_positions"][player.name][1]]
 
-            if isinstance(current_cell["object"], Portal):
-                self.state["terminated"] = True
-                self.state["success"] = True
-                self.state["aborted"] = False
-                return
+        if isinstance(current_cell["object"], Portal):
+            self.state["terminated"] = True
+            self.state["success"] = True
+            self.state["aborted"] = False
+            return
 
-            if isinstance(current_cell["object"], Switch):
-                current_cell["object"].activated = not current_cell["object"].activated
-                for row in self.state["grid"]:
-                    for cell in row:
-                        if isinstance(cell["object"], ProjectedWall):
-                            cell["object"].toggle_visibility()
+        self.state["aborted"] = False
+        self.state["terminated"] = False
+        self.state["success"] = True
 
-            self.state["moves"] += 1
+        if isinstance(current_cell["object"], Switch):
+            current_cell["object"].activated = not current_cell["object"].activated
+            for row in self.state["grid"]:
+                for cell in row:
+                    if isinstance(cell["object"], ProjectedWall):
+                        cell["object"].toggle_visibility()
+
+        self.state["moves"] += 1
 
     def format_grid(
-        self, grid: List[List[GridCell]], player_pos: Optional[Tuple[int, int]] = None
+        self, grid: List[List[GridCell]], player_name: Optional[str] = None
     ) -> str:
         """Format the grid for display.
 
         Args:
             grid: The grid to format
-            player_pos: Optional player position. If provided, shows the full grid but marks unexplored areas as "■".
-                       If None, shows the entire grid without fog of war.
+            player_name: Optional player name. If provided, uses the explored map of that player
+                to render explored vs unexplored cells and marks the player's current position with 'P'.
+                If None, shows the entire grid without fog of war.
         """
         grid_str = ""
+        player_pos = None
+        explored = None
+        if player_name is not None:
+            player_pos = self.state["player_positions"][player_name]
+            explored = self.explored[player_name]
+
         for i in range(self.grid_size):
             for j in range(self.grid_size):
                 cell = grid[i][j]
-                if player_pos is not None:
-                    row, col = player_pos
-                    is_visible = abs(i - row) <= 1 and abs(j - col) <= 1
-
-                    if is_visible:
-                        if cell["object"] is not None:
-                            grid_str += cell["object"].symbol
+                if explored is not None:
+                    if explored[i][j]:
+                        if (i, j) == player_pos:
+                            grid_str += "👤"
                         else:
-                            grid_str += "▢"
+                            grid_str += (
+                                cell["object"].symbol
+                                if cell["object"] is not None
+                                else "▢"
+                            )
                     else:
-                        grid_str += "■"
+                        grid_str += "▢"
                 else:
-                    if cell["object"] is not None:
+                    if (player_pos is not None) and (i, j) == player_pos:
+                        grid_str += "👤"
+                    elif cell["object"] is not None:
                         grid_str += cell["object"].symbol
                     else:
                         grid_str += "▢"
@@ -257,11 +273,21 @@ class PortalGameEnvironment(GridEnvironment):
                 grid_str += "-" * (self.grid_size * 2 - 1) + "\n"
         return grid_str
 
+    def _is_action_valid_in_state(self, player: Player, action: PortalAction) -> bool:
+        # action_type is already checked in the base class — need to only check the direction
+        direction = action.get("direction")
+        if not direction or not self._is_valid_move(
+            self.state["player_positions"][player.name], direction
+        ):
+            return False
+
+        return True
+
     def update_observations(self) -> None:
         """Update the observation for all players."""
         for player in self.players:
             player_pos = self.state["player_positions"][player.name]
-            grid_str = self.format_grid(self.state["grid"], player_pos)
+            grid_str = self.format_grid(self.state["grid"], player.name)
 
             switch_state = False
             projected_wall_state = True

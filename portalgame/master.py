@@ -1,3 +1,4 @@
+import re
 from typing import Dict, List
 
 from clemcore.backends import Model
@@ -90,9 +91,18 @@ class PortalGame(EnvGameMaster):
             bool: Whether the response is valid
         """
         try:
-            direction = utterance.strip().lower()
+            # look for 'DIRECTION:' and extract the last non-whitespace char after it
+
+            match = re.search(
+                r"DIRECTION:\s*([nsewNSEW])", utterance, re.IGNORECASE | re.DOTALL
+            )
+            if match:
+                direction = match.group(1).lower()
+            else:
+                # fallback: last non-whitespace char
+                direction = utterance.strip()[-1].lower()
             return direction in ["n", "s", "e", "w"]
-        except:
+        except Exception:
             return False
 
     def parse_action_from_response(self, response: str) -> PortalAction:
@@ -104,11 +114,16 @@ class PortalGame(EnvGameMaster):
         Returns:
             PortalAction: The parsed action
         """
-        direction = response.strip().lower()
+        match = re.search(
+            r"DIRECTION:\s*([nsewNSEW])", response, re.IGNORECASE | re.DOTALL
+        )
+        if match:
+            direction = match.group(1).lower()
+        else:
+            direction = response.strip()[-1].lower()
         action: PortalAction = {
             "action_type": "move",
             "direction": direction,
-            "target": None,
         }
         return action
 

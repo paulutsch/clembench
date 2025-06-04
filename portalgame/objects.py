@@ -7,7 +7,7 @@ class Wall(Object):
     """A regular wall that blocks movement."""
 
     def __init__(self, position: Tuple[int, int]):
-        super().__init__(position, "Wall", "W")
+        super().__init__(position, "Wall", "■")
 
     def can_interact_with(self, other: Object) -> bool:
         return False
@@ -33,7 +33,7 @@ class ProjectedWall(Object):
     """A wall that exists only in description but not in reality."""
 
     def __init__(self, position: Tuple[int, int]):
-        super().__init__(position, "ProjectedWall", "X")
+        super().__init__(position, "ProjectedWall", "░")
         self.is_visible = True
 
     def can_interact_with(self, other: Object) -> bool:
@@ -50,7 +50,7 @@ class Switch(Object):
     """A switch that can be activated by stepping on it."""
 
     def __init__(self, position: Tuple[int, int]):
-        super().__init__(position, "Switch", "S")
+        super().__init__(position, "Switch", "🔘")
         self.activated = False
 
     def can_interact_with(self, other: Object) -> bool:
