@@ -55,6 +55,7 @@ class TicTacToeEnvironment(GameEnvironment):
             aborted=False,
             winner=None,
             moves=0,
+            warning="",
         )
         self.base_prompt = ""
         self.config = {}
@@ -78,6 +79,7 @@ class TicTacToeEnvironment(GameEnvironment):
             aborted=False,
             winner=None,
             moves=0,
+            warning="",
         )
 
     def format_board(self, board: list[list[Literal["X", "O", "▢"]]]) -> str:
@@ -86,12 +88,16 @@ class TicTacToeEnvironment(GameEnvironment):
         for i in range(3):
             for j in range(3):
                 board_str += f"{board[i][j]}"
-                if j < 2:
-                    board_str += "|"
             board_str += "\n"
-            if i < 2:
-                board_str += "-+-+-\n"
         return board_str
+
+    def _is_action_valid_in_state(
+        self, player: TicTacToePlayer, action: TicTacToeAction
+    ) -> bool:
+        """Check if an action is valid in the current state."""
+        row = action.get("row")
+        col = action.get("col")
+        return self.is_valid_move(row, col)
 
     def is_valid_move(self, row: int | None, col: int | None) -> bool:
         """Check if a move is valid."""
@@ -158,13 +164,18 @@ class TicTacToeEnvironment(GameEnvironment):
     def update_observations(self) -> None:
         """Update the observation for all players."""
         for player in self.players:
-            if self.state["moves"] > 0:
-                prompt = (
-                    "The other player made a move. The new board is:\n\n"
-                    + self.format_board(self.state["board"])
-                    + "\n\nMake your next move in the format described before."
-                )
+            if self.state["moves"] > 1:
+                if self.state["warning"] != "":
+                    prompt = self.state["warning"]
+                    self.state["warning"] = ""
+                else:
+                    prompt = (
+                        "The other player made a move. The new board is:\n\n"
+                        + self.format_board(self.state["board"])
+                        + "\n\nMake your next move in the format described before."
+                    )
                 self.observations[player.name]["content"] = prompt
+
             else:
                 prompt = (
                     self.base_prompt
@@ -174,19 +185,12 @@ class TicTacToeEnvironment(GameEnvironment):
                 )
                 self.observations[player.name]["content"] = prompt
 
-    def _do_update_state(
+    def _update_state_through_action(
         self, player: TicTacToePlayer, action: TicTacToeAction
     ) -> None:
         """Update the game state based on the action."""
-        row = action.get("row")
-        col = action.get("col")
-
-        if not self.is_valid_move(row, col):
-            logger.warning(f"Invalid move: {row}, {col}")
-            self.state["terminated"] = True
-            self.state["success"] = False
-            self.state["aborted"] = True
-            return
+        row = action["row"]
+        col = action["col"]
 
         self.state["board"][row][col] = (
             "X" if self.state["current_player"] == 1 else "O"

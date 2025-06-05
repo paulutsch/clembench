@@ -72,6 +72,7 @@ class SudokuEnvironment(GameEnvironment):
             aborted=False,
             board=self.original_board.tolist(),
             moves=0,
+            warning="",
         )
 
     def reset(
@@ -86,6 +87,7 @@ class SudokuEnvironment(GameEnvironment):
             aborted=False,
             board=self.original_board.tolist(),
             moves=0,
+            warning="",
         )
 
     def _is_board_valid(
@@ -138,25 +140,26 @@ class SudokuEnvironment(GameEnvironment):
     def _get_current_board(self):
         return self.state["board"].copy()
 
-    def _do_update_state(self, player: SudokuPlayer, action: SudokuAction) -> None:
-        """Update the game state based on the action."""
+    def _is_action_valid_in_state(
+        self, player: SudokuPlayer, action: SudokuAction
+    ) -> bool:
+        """Check if an action is valid in the current state."""
         row = action.get("row")
         col = action.get("col")
         value = action.get("value")
 
         if row is None or col is None or value is None:
-            logger.warning("row or col or value missing in action")
-            self.state["terminated"] = True
-            self.state["success"] = False
-            self.state["aborted"] = True
-            return
+            return False
 
-        if not self._is_board_valid(self.state["board"], row, col, value):
-            logger.warning(f"[_do_update_state] Board is not valid, action: {action}")
-            self.state["terminated"] = True
-            self.state["success"] = False
-            self.state["aborted"] = False
-            return
+        return self._is_board_valid(self.state["board"], row, col, value)
+
+    def _update_state_through_action(
+        self, player: SudokuPlayer, action: SudokuAction
+    ) -> None:
+        """Update the game state based on the action."""
+        row = action["row"]
+        col = action["col"]
+        value = action["value"]
 
         self.state["board"][row][col] = value
 
@@ -169,18 +172,22 @@ class SudokuEnvironment(GameEnvironment):
         self.state["success"] = True
         self.state["aborted"] = False
 
-        logger.info(f"[_do_update_state] Board is valid, action: {action}")
+        logger.info(f"[_update_state_through_action] Board is valid, action: {action}")
 
     def update_observations(self):
         for player in self.players:
             self.observations[player.name]["board"] = self.format_board(
                 np.array(self.state["board"])
             )
-            self.observations[player.name]["content"] = (
-                "The new board is:\n\n"
-                + self.format_board(np.array(self.state["board"]))
-                + "\n\nMake your next move in the format described before."
-            )
+            if self.state["warning"] != "":
+                self.observations[player.name]["content"] = self.state["warning"]
+                self.state["warning"] = ""
+            else:
+                self.observations[player.name]["content"] = (
+                    "The new board is:\n\n"
+                    + self.format_board(np.array(self.state["board"]))
+                    + "\n\nMake your next move in the format described before."
+                )
 
     def format_board(self, board: np.ndarray) -> str:
         """Format the Sudoku board with box separators using | and - characters."""
@@ -196,7 +203,7 @@ class SudokuEnvironment(GameEnvironment):
                 row.append(val)
                 if (j + 1) % box_size == 0 and j < board_size - 1:
                     row.append("|")
-            output.append("▢".join(row))
+            output.append("".join(row))
 
             if (i + 1) % box_size == 0 and i < board_size - 1:
                 output.append("-" * (board_size * 2 + 2))

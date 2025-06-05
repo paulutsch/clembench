@@ -92,7 +92,7 @@ class TicTacToeGame(EnvGameMaster):
         }
         self.game_environment.reset(initial_observations, initial_action_spaces)
 
-    def _validate_player_response(
+    def _player_response_in_expected_format(
         self, player: TicTacToePlayer, utterance: str
     ) -> bool:
         """
@@ -111,7 +111,7 @@ class TicTacToeGame(EnvGameMaster):
         except (ValueError, IndexError):
             return False
 
-    def parse_action_from_response(self, response: str) -> TicTacToeAction:
+    def _parse_action_from_response(self, response: str) -> TicTacToeAction:
         """Create an action from a player's response.
 
         Args:

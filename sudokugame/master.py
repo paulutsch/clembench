@@ -58,7 +58,7 @@ class SudokuGame(EnvGameMaster):
         difficulty = game_instance["difficulty"]
         logger.info(f"[_on_setup] Board size: {board_size}, Difficulty: {difficulty}")
 
-        self.game_environment = SudokuEnvironment(board_size, difficulty)
+        self.game_environment = SudokuEnvironment(board_size, difficulty, game_instance)
         logger.info(f"[_on_setup] Game environment: {self.game_environment}")
         self.game_environment.config = game_instance
 
@@ -86,7 +86,7 @@ class SudokuGame(EnvGameMaster):
         }
         self.game_environment.reset(initial_observations, initial_action_spaces)
 
-    def _validate_player_response(self, player: Player, utterance: str) -> bool:
+    def _player_response_in_expected_format(self, player: Player, utterance: str) -> bool:
         """
         Validate the player's response.
 
@@ -99,7 +99,7 @@ class SudokuGame(EnvGameMaster):
         """
         return True
 
-    def parse_action_from_response(self, response: str) -> SudokuAction:
+    def _parse_action_from_response(self, response: str) -> SudokuAction:
         """Create an action from a player's response.
 
         Default: return action

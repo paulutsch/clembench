@@ -10,14 +10,14 @@ from clemcore.clemgame import (
     GameSpec,
     Player,
 )
-from clemcore.utils.logger import setup_logger
+from clemcore.clemgame.metrics import BENCH_SCORE
+from clemcore.utils.logger import format_json, setup_logger
 
 from portalgame.game_environment import (
     PortalAction,
     PortalGameEnvironment,
     PortalObservation,
 )
-from portalgame.scorer import PortalGameScorer
 
 logger = setup_logger(__name__)
 
@@ -79,7 +79,7 @@ class PortalGame(EnvGameMaster):
 
         self.game_environment.reset()
 
-    def _validate_player_response(self, player: Player, utterance: str) -> bool:
+    def _player_response_in_expected_format(self, player: Player, utterance: str) -> bool:
         """
         Validate the player's response.
 
@@ -105,7 +105,7 @@ class PortalGame(EnvGameMaster):
         except Exception:
             return False
 
-    def parse_action_from_response(self, response: str) -> PortalAction:
+    def _parse_action_from_response(self, response: str) -> PortalAction:
         """Create an action from a player's response.
 
         Args:
@@ -158,6 +158,44 @@ class PortalGame(EnvGameMaster):
         score = 1.0 if self.game_environment.state["success"] else 0.0
         logger.info(f"[_compute_episode_score] Episode score: {score}")
         return score
+
+
+class PortalGameScorer(GameScorer):
+    """Scorer for the Portal game."""
+
+    def __init__(self, game_name: str, experiment: Dict, game_instance: Dict):
+        super().__init__(game_name, experiment, game_instance)
+
+    def compute_scores(self, episode_interactions: Dict) -> None:
+        """
+        Compute scores for the episode based on the interactions.
+        The Hello Game is scored based on whether the greeting was successful.
+
+        Args:
+            episode_interactions: Dictionary containing the episode interactions
+        """
+        logger.debug(
+            f"Computing scores for episode interactions: \n{format_json(episode_interactions)}"
+        )
+
+        success = 1 if episode_interactions["success"] else 0
+        aborted = 1 if episode_interactions["aborted"] else 0
+        episode_score = episode_interactions["episode_score"]
+
+        self.log_episode_score("Success", success)
+        logger.info(f"Episode success: {success}")
+
+        self.log_episode_score("Aborted", aborted)
+        logger.info(f"Episode aborted: {aborted}")
+
+        self.log_episode_score("Episode Score", episode_score)
+        logger.info(f"Final episode score: {episode_score}")
+
+        # bench score based on following instructions (not aborted) and winning (success)
+        not_aborted = 1 if not aborted else 0
+        bench_score = (not_aborted + success) / 2
+        self.log_episode_score(BENCH_SCORE, bench_score)
+        logger.info(f"Final bench score: {bench_score}")
 
 
 class PortalGameBenchmark(GameBenchmark):

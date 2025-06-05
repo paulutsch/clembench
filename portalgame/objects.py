@@ -7,7 +7,7 @@ class Wall(Object):
     """A regular wall that blocks movement."""
 
     def __init__(self, position: Tuple[int, int]):
-        super().__init__(position, "Wall", "■")
+        super().__init__(position, "Wall", "⬛")
 
     def can_interact_with(self, other: Object) -> bool:
         return False
@@ -20,7 +20,7 @@ class Portal(Object):
     """A portal that leads to transcendence."""
 
     def __init__(self, position: Tuple[int, int]):
-        super().__init__(position, "Portal", "O")
+        super().__init__(position, "Portal", "🟪")
 
     def can_interact_with(self, other: Object) -> bool:
         return isinstance(other, PlayerObject)
@@ -33,7 +33,7 @@ class ProjectedWall(Object):
     """A wall that exists only in description but not in reality."""
 
     def __init__(self, position: Tuple[int, int]):
-        super().__init__(position, "ProjectedWall", "░")
+        super().__init__(position, "ProjectedWall", "🟥")
         self.is_visible = True
 
     def can_interact_with(self, other: Object) -> bool:

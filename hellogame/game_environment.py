@@ -96,7 +96,7 @@ class HelloGameEnvironment(GameEnvironment):
         self.observations[player.name] = observation
         logger.debug(f"[step] Observation: \n{format_json(observation)}")
 
-    def _do_update_state(self, player: Player, action: HelloGameAction):
+    def _update_state_through_action(self, player: Player, action: HelloGameAction):
         """
         Update the state based on the action.
         """

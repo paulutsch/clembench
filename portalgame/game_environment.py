@@ -36,12 +36,11 @@ class PortalObservation(GridObservation):
 class PortalGameState(GridState):
     """State for the Portal game."""
 
-    # actually not needed yet, but will keep it in case it'll be needed later
-
     moves: int
     success: bool
     terminated: bool
     aborted: bool
+    warning: str
 
 
 class PortalGameEnvironment(GridEnvironment):
@@ -55,6 +54,8 @@ class PortalGameEnvironment(GridEnvironment):
         self.base_prompt = ""
         self.config = {}
         self.explored: Dict[str, List[List[bool]]] = {}
+        self.state: PortalGameState
+        self.max_moves: int
 
     def reset(self) -> None:
         """Reset the game environment."""
@@ -71,7 +72,9 @@ class PortalGameEnvironment(GridEnvironment):
             terminated=False,
             aborted=False,
             moves=0,
+            warning="",
         )
+        self.max_moves = self.config["max_moves"]
 
         self._construct_grid()
 
@@ -95,15 +98,9 @@ class PortalGameEnvironment(GridEnvironment):
                 self.base_prompt
                 + "\n\n"
                 + "You initially see the following grid layout:\n"
-                + self.format_grid(
-                    self.state["grid"],
-                    self.players[0].name,
-                )
+                + self.render_state(self.players[0].name)
             ),
-            "grid": self.format_grid(
-                self.state["grid"],
-                self.players[0].name,
-            ),
+            "grid": self.render_state(self.players[0].name),
         }
         initial_observations: Dict[str, PortalObservation] = {
             self.players[0].name: player_observation,
@@ -169,11 +166,15 @@ class PortalGameEnvironment(GridEnvironment):
         new_row, new_col = new_pos
         # check if the new position is within the grid
         if not (0 <= new_row < self.grid_size and 0 <= new_col < self.grid_size):
+            self.state["warning"] = (
+                "You cannot move outside the grid! Please try again."
+            )
             return False
 
         # check if the new position is a wall
         cell = self.state["grid"][new_row][new_col]
         if isinstance(cell["object"], Wall):
+            self.state["warning"] = "You cannot pass through walls! Please try again."
             return False
 
         return True
@@ -186,7 +187,9 @@ class PortalGameEnvironment(GridEnvironment):
                 if 0 <= i < self.grid_size and 0 <= j < self.grid_size:
                     self.explored[player_name][i][j] = True
 
-    def _do_update_state(self, player: Player, action: PortalAction) -> None:
+    def _update_state_through_action(
+        self, player: Player, action: PortalAction
+    ) -> None:
         """Update the game state based on the action."""
         direction = action.get("direction")
 
@@ -223,11 +226,7 @@ class PortalGameEnvironment(GridEnvironment):
                     if isinstance(cell["object"], ProjectedWall):
                         cell["object"].toggle_visibility()
 
-        self.state["moves"] += 1
-
-    def format_grid(
-        self, grid: List[List[GridCell]], player_name: Optional[str] = None
-    ) -> str:
+    def render_state(self, player_name: Optional[str] = None) -> str:
         """Format the grid for display.
 
         Args:
@@ -245,7 +244,7 @@ class PortalGameEnvironment(GridEnvironment):
 
         for i in range(self.grid_size):
             for j in range(self.grid_size):
-                cell = grid[i][j]
+                cell = self.state["grid"][i][j]
                 if explored is not None:
                     if explored[i][j]:
                         if (i, j) == player_pos:
@@ -254,23 +253,21 @@ class PortalGameEnvironment(GridEnvironment):
                             grid_str += (
                                 cell["object"].symbol
                                 if cell["object"] is not None
-                                else "▢"
+                                else "⬜"
                             )
                     else:
-                        grid_str += "▢"
+                        grid_str += "⬜"
                 else:
                     if (player_pos is not None) and (i, j) == player_pos:
                         grid_str += "👤"
                     elif cell["object"] is not None:
                         grid_str += cell["object"].symbol
                     else:
-                        grid_str += "▢"
+                        grid_str += "⬜"
 
-                if j < self.grid_size - 1:
-                    grid_str += "|"
             grid_str += "\n"
             if i < self.grid_size - 1:
-                grid_str += "-" * (self.grid_size * 2 - 1) + "\n"
+                grid_str += "\n"
         return grid_str
 
     def _is_action_valid_in_state(self, player: Player, action: PortalAction) -> bool:
@@ -287,7 +284,7 @@ class PortalGameEnvironment(GridEnvironment):
         """Update the observation for all players."""
         for player in self.players:
             player_pos = self.state["player_positions"][player.name]
-            grid_str = self.format_grid(self.state["grid"], player.name)
+            grid_str = self.render_state(player.name)
 
             switch_state = False
             projected_wall_state = True
@@ -298,9 +295,15 @@ class PortalGameEnvironment(GridEnvironment):
                     elif isinstance(cell["object"], ProjectedWall):
                         projected_wall_state = cell["object"].is_visible
 
+            if self.state["warning"]:
+                warning = "Warning: " + self.state["warning"]
+            else:
+                warning = ""
+
             observation: PortalObservation = {
                 "role": "user",
                 "content": (
+                    f"{warning}\n"
                     f"Current position: {player_pos}\n"
                     f"Switch active: {switch_state}\n"
                     f"Projected wall active: {projected_wall_state}\n"
@@ -308,5 +311,6 @@ class PortalGameEnvironment(GridEnvironment):
                 ),
                 "grid": grid_str,
             }
+            self.state["warning"] = ""
 
             self.observations[player.name] = observation
