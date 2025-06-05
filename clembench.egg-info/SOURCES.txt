@@ -1,5 +1,6 @@
 README.md
 setup.py
+_logger/__init__.py
 adventuregame/__init__.py
 adventuregame/adv_util.py
 adventuregame/clingo_adventure_solve_checker.py
@@ -48,6 +49,9 @@ privateshared/master.py
 referencegame/__init__.py
 referencegame/instancegenerator.py
 referencegame/master.py
+sudoku/__init__.py
+sudoku/game_environment.py
+sudoku/master.py
 taboo/__init__.py
 taboo/instancegenerator.py
 taboo/master.py
@@ -60,6 +64,3 @@ wordle/utils/compute_metrics.py
 wordle/utils/dump_categorized_words.py
 wordle/utils/guessvalidator.py
 wordle/utils/instance_utils.py
-world_environments/__init__.py
-world_environments/game_environment.py
-world_environments/game_master.py

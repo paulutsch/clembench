@@ -60,6 +60,3 @@ wordle/utils/compute_metrics.py
 wordle/utils/dump_categorized_words.py
 wordle/utils/guessvalidator.py
 wordle/utils/instance_utils.py
-world_environments/__init__.py
-world_environments/game_environment.py
-world_environments/game_master.py

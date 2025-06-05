@@ -1,3 +1,4 @@
+_logger
 adventuregame
 chatgame
 cloudgame
@@ -8,6 +9,6 @@ imagegame
 multimodal_referencegame
 privateshared
 referencegame
+sudoku
 taboo
 wordle
-world_environments
