@@ -13,7 +13,7 @@ from clemcore.clemgame import (
 )
 from clemcore.utils.logger import setup_logger
 
-from portalgame.objects import Portal, ProjectedWall, Switch, Wall
+from portalgame.objects import Door, Portal, Switch, Wall
 
 logger = setup_logger(__name__)
 
@@ -46,9 +46,10 @@ class PortalGameState(GridState):
 class PortalGameEnvironment(GridEnvironment):
     """Environment for the Portal game."""
 
-    def __init__(self, grid_size: int = 10):
+    def __init__(self, grid_size: int = 10, limited_visibility: bool = True):
         super().__init__(grid_size, grid_size)
         self.grid_size = grid_size
+        self.limited_visibility = limited_visibility
         self.observations: Dict[str, PortalObservation] = {}
         self.action_spaces: Dict[str, ActionSpace] = {}
         self.base_prompt = ""
@@ -138,11 +139,11 @@ class PortalGameEnvironment(GridEnvironment):
                 object=Switch(position=(row, col)), position=(row, col)
             )
 
-        projected_wall_pos = grid_config.get("projected_wall")
-        if projected_wall_pos:
-            row, col = projected_wall_pos
+        door_pos = grid_config.get("door")
+        if door_pos:
+            row, col = door_pos
             self.state["grid"][row][col] = GridCell(
-                object=ProjectedWall(position=(row, col)), position=(row, col)
+                object=Door(position=(row, col)), position=(row, col)
             )
 
         player_start = grid_config.get("player_start", (0, 0))
@@ -171,10 +172,13 @@ class PortalGameEnvironment(GridEnvironment):
             )
             return False
 
-        # check if the new position is a wall
+        # check if the new position is a wall or closed door
         cell = self.state["grid"][new_row][new_col]
         if isinstance(cell["object"], Wall):
             self.state["warning"] = "You cannot pass through walls! Please try again."
+            return False
+        if isinstance(cell["object"], Door) and not cell["object"].is_open:
+            self.state["warning"] = "The door is closed! You need to open it first."
             return False
 
         return True
@@ -223,8 +227,8 @@ class PortalGameEnvironment(GridEnvironment):
             current_cell["object"].activated = not current_cell["object"].activated
             for row in self.state["grid"]:
                 for cell in row:
-                    if isinstance(cell["object"], ProjectedWall):
-                        cell["object"].toggle_visibility()
+                    if isinstance(cell["object"], Door):
+                        cell["object"].toggle_state()
 
     def render_state(self, player_name: Optional[str] = None) -> str:
         """Format the grid for display.
@@ -242,6 +246,24 @@ class PortalGameEnvironment(GridEnvironment):
             player_pos = self.state["player_positions"][player_name]
             explored = self.explored[player_name]
 
+        if self.limited_visibility and player_pos is not None:
+            # Only show cells around the player
+            row, col = player_pos
+            for i in range(max(0, row - 1), min(self.grid_size, row + 2)):
+                for j in range(max(0, col - 1), min(self.grid_size, col + 2)):
+                    cell = self.state["grid"][i][j]
+                    if (i, j) == player_pos:
+                        grid_str += "👤"
+                    else:
+                        grid_str += (
+                            cell["object"].symbol
+                            if cell["object"] is not None
+                            else "⬜"
+                        )
+                grid_str += "\n"
+            return grid_str
+
+        # Full grid visibility
         for i in range(self.grid_size):
             for j in range(self.grid_size):
                 cell = self.state["grid"][i][j]
@@ -256,7 +278,7 @@ class PortalGameEnvironment(GridEnvironment):
                                 else "⬜"
                             )
                     else:
-                        grid_str += "⬜"
+                        grid_str += "❓"
                 else:
                     if (player_pos is not None) and (i, j) == player_pos:
                         grid_str += "👤"
@@ -266,8 +288,6 @@ class PortalGameEnvironment(GridEnvironment):
                         grid_str += "⬜"
 
             grid_str += "\n"
-            if i < self.grid_size - 1:
-                grid_str += "\n"
         return grid_str
 
     def _is_action_valid_in_state(self, player: Player, action: PortalAction) -> bool:
@@ -287,13 +307,13 @@ class PortalGameEnvironment(GridEnvironment):
             grid_str = self.render_state(player.name)
 
             switch_state = False
-            projected_wall_state = True
+            door_state = False
             for row in self.state["grid"]:
                 for cell in row:
                     if isinstance(cell["object"], Switch):
                         switch_state = cell["object"].activated
-                    elif isinstance(cell["object"], ProjectedWall):
-                        projected_wall_state = cell["object"].is_visible
+                    elif isinstance(cell["object"], Door):
+                        door_state = cell["object"].is_open
 
             if self.state["warning"]:
                 warning = "Warning: " + self.state["warning"]
@@ -306,7 +326,7 @@ class PortalGameEnvironment(GridEnvironment):
                     f"{warning}\n"
                     f"Current position: {player_pos}\n"
                     f"Switch active: {switch_state}\n"
-                    f"Projected wall active: {projected_wall_state}\n"
+                    f"Door state: {'open' if door_state else 'closed'}\n"
                     f"Visible grid:\n{grid_str}"
                 ),
                 "grid": grid_str,

@@ -29,21 +29,22 @@ class Portal(Object):
         pass
 
 
-class ProjectedWall(Object):
-    """A wall that exists only in description but not in reality."""
+class Door(Object):
+    """A door that can be opened and closed."""
 
     def __init__(self, position: Tuple[int, int]):
-        super().__init__(position, "ProjectedWall", "🟥")
-        self.is_visible = True
+        super().__init__(position, "Door", "🚪")
+        self.is_open = False
 
     def can_interact_with(self, other: Object) -> bool:
-        return False
+        return isinstance(other, PlayerObject)
 
     def interact_with(self, other: Object) -> None:
         pass
 
-    def toggle_visibility(self) -> None:
-        self.is_visible = not self.is_visible
+    def toggle_state(self) -> None:
+        """Toggle the door's open/closed state."""
+        self.is_open = not self.is_open
 
 
 class Switch(Object):
