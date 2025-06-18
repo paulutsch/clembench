@@ -46,9 +46,10 @@ class PortalGameState(GridState):
 class PortalGameEnvironment(GridEnvironment):
     """Environment for the Portal game."""
 
-    def __init__(self, grid_size: int = 10, limited_visibility: bool = True):
-        super().__init__(grid_size, grid_size)
-        self.grid_size = grid_size
+    def __init__(
+        self, height: int = 10, width: int = 10, limited_visibility: bool = True
+    ):
+        super().__init__(height, width)
         self.limited_visibility = limited_visibility
         self.observations: Dict[str, PortalObservation] = {}
         self.action_spaces: Dict[str, ActionSpace] = {}
@@ -62,8 +63,8 @@ class PortalGameEnvironment(GridEnvironment):
         """Reset the game environment."""
         self.state = PortalGameState(
             grid=[
-                [GridCell(object=None, position=(i, j)) for j in range(self.grid_size)]
-                for i in range(self.grid_size)
+                [GridCell(object=None, position=(i, j)) for j in range(self.width)]
+                for i in range(self.height)
             ],
             player_positions={
                 self.players[0].name: self.config["grid"]["player_start"]
@@ -81,7 +82,7 @@ class PortalGameEnvironment(GridEnvironment):
 
         self.explored = {
             player.name: [
-                [False for _ in range(self.grid_size)] for _ in range(self.grid_size)
+                [False for _ in range(self.width)] for _ in range(self.height)
             ]
             for player in self.players
         }
@@ -150,45 +151,12 @@ class PortalGameEnvironment(GridEnvironment):
 
         self.state["player_positions"][self.players[0].name] = tuple(player_start)
 
-    def _is_valid_move(self, pos: Tuple[int, int], direction: str) -> bool:
-        """Check if a move is valid."""
-        row, col = pos
-        if direction == "n":
-            new_pos = (row - 1, col)
-        elif direction == "s":
-            new_pos = (row + 1, col)
-        elif direction == "e":
-            new_pos = (row, col + 1)
-        elif direction == "w":
-            new_pos = (row, col - 1)
-        else:
-            return False
-
-        new_row, new_col = new_pos
-        # check if the new position is within the grid
-        if not (0 <= new_row < self.grid_size and 0 <= new_col < self.grid_size):
-            self.state["warning"] = (
-                "You cannot move outside the grid! Please try again."
-            )
-            return False
-
-        # check if the new position is a wall or closed door
-        cell = self.state["grid"][new_row][new_col]
-        if isinstance(cell["object"], Wall):
-            self.state["warning"] = "You cannot pass through walls! Please try again."
-            return False
-        if isinstance(cell["object"], Door) and not cell["object"].is_open:
-            self.state["warning"] = "The door is closed! You need to open it first."
-            return False
-
-        return True
-
     def _mark_explored(self, player_name: str, pos: Tuple[int, int]) -> None:
         """Mark cells around a position as explored for the given player."""
         row, col = pos
         for i in range(row - 1, row + 2):
             for j in range(col - 1, col + 2):
-                if 0 <= i < self.grid_size and 0 <= j < self.grid_size:
+                if 0 <= i < self.height and 0 <= j < self.width:
                     self.explored[player_name][i][j] = True
 
     def _update_state_through_action(
@@ -230,75 +198,46 @@ class PortalGameEnvironment(GridEnvironment):
                     if isinstance(cell["object"], Door):
                         cell["object"].toggle_state()
 
-    def render_state(self, player_name: Optional[str] = None) -> str:
-        """Format the grid for display.
-
-        Args:
-            grid: The grid to format
-            player_name: Optional player name. If provided, uses the explored map of that player
-                to render explored vs unexplored cells and marks the player's current position with 'P'.
-                If None, shows the entire grid without fog of war.
-        """
-        grid_str = ""
-        player_pos = None
-        explored = None
-        if player_name is not None:
-            player_pos = self.state["player_positions"][player_name]
-            explored = self.explored[player_name]
-
-        if self.limited_visibility and player_pos is not None:
-            # Only show cells around the player
-            row, col = player_pos
-            for i in range(max(0, row - 1), min(self.grid_size, row + 2)):
-                for j in range(max(0, col - 1), min(self.grid_size, col + 2)):
-                    cell = self.state["grid"][i][j]
-                    if (i, j) == player_pos:
-                        grid_str += "👤"
-                    else:
-                        grid_str += (
-                            cell["object"].symbol
-                            if cell["object"] is not None
-                            else "⬜"
-                        )
-                grid_str += "\n"
-            return grid_str
-
-        # Full grid visibility
-        for i in range(self.grid_size):
-            for j in range(self.grid_size):
-                cell = self.state["grid"][i][j]
-                if explored is not None:
-                    if explored[i][j]:
-                        if (i, j) == player_pos:
-                            grid_str += "👤"
-                        else:
-                            grid_str += (
-                                cell["object"].symbol
-                                if cell["object"] is not None
-                                else "⬜"
-                            )
-                    else:
-                        grid_str += "❓"
-                else:
-                    if (player_pos is not None) and (i, j) == player_pos:
-                        grid_str += "👤"
-                    elif cell["object"] is not None:
-                        grid_str += cell["object"].symbol
-                    else:
-                        grid_str += "⬜"
-
-            grid_str += "\n"
-        return grid_str
-
-    def _is_action_valid_in_state(self, player: Player, action: PortalAction) -> bool:
+    def _is_action_valid_in_state(
+        self, player: Player, action: PortalAction
+    ) -> Tuple[bool, str]:
         # action_type is already checked in the base class — need to only check the direction
         direction = action.get("direction")
-        if not direction or not self._is_valid_move(
-            self.state["player_positions"][player.name], direction
-        ):
-            return False
+        """Check if a move is valid."""
+        row, col = self.state["player_positions"][player.name]
+        if direction == "n":
+            new_pos = (row - 1, col)
+        elif direction == "s":
+            new_pos = (row + 1, col)
+        elif direction == "e":
+            new_pos = (row, col + 1)
+        elif direction == "w":
+            new_pos = (row, col - 1)
+        else:
+            return False, f"Invalid direction: {direction}! Please try again."
 
-        return True
+        new_row, new_col = new_pos
+        # check if the new position is within the grid
+        if not (0 <= new_row < self.height and 0 <= new_col < self.width):
+            return (
+                False,
+                f"The cell ({new_row}, {new_col}) is outside the grid! Please try again.",
+            )
+
+        # check if the new position is a wall or closed door
+        cell = self.state["grid"][new_row][new_col]
+        if isinstance(cell["object"], Wall):
+            return (
+                False,
+                f"The object at cell ({new_row}, {new_col}) is a wall! You cannot pass through walls! Please try again.",
+            )
+        if isinstance(cell["object"], Door) and not cell["object"].is_open:
+            return (
+                False,
+                f"The object at cell ({new_row}, {new_col}) is a closed door! You need to open it first.",
+            )
+
+        return True, ""
 
     def update_observations(self) -> None:
         """Update the observation for all players."""
@@ -306,8 +245,8 @@ class PortalGameEnvironment(GridEnvironment):
             player_pos = self.state["player_positions"][player.name]
             grid_str = self.render_state(player.name)
 
-            switch_state = False
-            door_state = False
+            switch_state = None
+            door_state = None
             for row in self.state["grid"]:
                 for cell in row:
                     if isinstance(cell["object"], Switch):
@@ -323,11 +262,19 @@ class PortalGameEnvironment(GridEnvironment):
             observation: PortalObservation = {
                 "role": "user",
                 "content": (
-                    f"{warning}\n"
-                    f"Current position: {player_pos}\n"
-                    f"Switch active: {switch_state}\n"
-                    f"Door state: {'open' if door_state else 'closed'}\n"
-                    f"Visible grid:\n{grid_str}"
+                    (f"{warning}\n" if warning else "")
+                    + f"Current position: {player_pos}\n"
+                    + (
+                        f"Switch active: {switch_state}\n"
+                        if switch_state is not None
+                        else ""
+                    )
+                    + (
+                        f"Door state: {'open' if door_state else 'closed'}\n"
+                        if door_state is not None
+                        else ""
+                    )
+                    + f"\nGrid (Visible Area):\n{grid_str}"
                 ),
                 "grid": grid_str,
             }
