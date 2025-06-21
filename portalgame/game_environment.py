@@ -1,13 +1,12 @@
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 from clemcore.clemgame import (
     Action,
     ActionSpace,
-    Grid,
     GridCell,
     GridEnvironment,
-    GridObservation,
     GridState,
+    Observation,
     Player,
     PlayerObject,
 )
@@ -23,14 +22,6 @@ class PortalAction(Action):
 
     action_type: str
     direction: str  # 'n', 's', 'e', 'w'
-
-
-class PortalObservation(GridObservation):
-    """Observation for the Portal game."""
-
-    role: str
-    content: str
-    grid: str
 
 
 class PortalGameState(GridState):
@@ -51,7 +42,7 @@ class PortalGameEnvironment(GridEnvironment):
     ):
         super().__init__(height, width)
         self.limited_visibility = limited_visibility
-        self.observations: Dict[str, PortalObservation] = {}
+        self.observations: Dict[str, Observation] = {}
         self.action_spaces: Dict[str, ActionSpace] = {}
         self.base_prompt = ""
         self.config = {}
@@ -63,7 +54,7 @@ class PortalGameEnvironment(GridEnvironment):
         """Reset the game environment."""
         self.state = PortalGameState(
             grid=[
-                [GridCell(object=None, position=(i, j)) for j in range(self.width)]
+                [GridCell(objects=[], position=(i, j)) for j in range(self.width)]
                 for i in range(self.height)
             ],
             player_positions={
@@ -94,7 +85,7 @@ class PortalGameEnvironment(GridEnvironment):
         self.base_prompt = self.config["prompt"]
 
         # Initialize the environment with the grid configuration
-        player_observation: PortalObservation = {
+        player_observation: Observation = {
             "role": "user",
             "content": (
                 self.base_prompt
@@ -102,9 +93,8 @@ class PortalGameEnvironment(GridEnvironment):
                 + "You initially see the following grid layout:\n"
                 + self.render_state(self.players[0].name)
             ),
-            "grid": self.render_state(self.players[0].name),
         }
-        initial_observations: Dict[str, PortalObservation] = {
+        initial_observations: Dict[str, Observation] = {
             self.players[0].name: player_observation,
         }
         initial_action_spaces: Dict[str, ActionSpace] = {self.players[0].name: ["move"]}
@@ -122,32 +112,27 @@ class PortalGameEnvironment(GridEnvironment):
 
         for wall_pos in grid_config.get("walls", []):
             row, col = wall_pos
-            self.state["grid"][row][col] = GridCell(
-                object=Wall(position=(row, col)), position=(row, col)
-            )
+            self.state["grid"][row][col]["objects"].append(Wall(position=(row, col)))
 
         portal_pos = grid_config.get("portal")
         if portal_pos:
             row, col = portal_pos
-            self.state["grid"][row][col] = GridCell(
-                object=Portal(position=(row, col)), position=(row, col)
-            )
+            self.state["grid"][row][col]["objects"].append(Portal(position=(row, col)))
 
         switch_pos = grid_config.get("switch")
         if switch_pos:
             row, col = switch_pos
-            self.state["grid"][row][col] = GridCell(
-                object=Switch(position=(row, col)), position=(row, col)
-            )
+            self.state["grid"][row][col]["objects"].append(Switch(position=(row, col)))
 
         door_pos = grid_config.get("door")
         if door_pos:
             row, col = door_pos
-            self.state["grid"][row][col] = GridCell(
-                object=Door(position=(row, col)), position=(row, col)
-            )
+            self.state["grid"][row][col]["objects"].append(Door(position=(row, col)))
 
         player_start = grid_config.get("player_start", (0, 0))
+        self.state["grid"][player_start[0]][player_start[1]]["objects"].append(
+            PlayerObject(position=player_start, player=self.players[0])
+        )
 
         self.state["player_positions"][self.players[0].name] = tuple(player_start)
 
@@ -166,6 +151,10 @@ class PortalGameEnvironment(GridEnvironment):
         direction = action.get("direction")
 
         row, col = self.state["player_positions"][player.name]
+        current_cell = self.state["grid"][row][col]
+        player_object = current_cell["objects"][-1]
+        current_cell["objects"].pop()
+
         if direction == "n":
             self.state["player_positions"][player.name] = (row - 1, col)
         elif direction == "s":
@@ -175,13 +164,13 @@ class PortalGameEnvironment(GridEnvironment):
         elif direction == "w":
             self.state["player_positions"][player.name] = (row, col - 1)
 
+        new_cell = self.state["grid"][self.state["player_positions"][player.name][0]][
+            self.state["player_positions"][player.name][1]
+        ]
+        new_cell["objects"].append(player_object)
         self._mark_explored(player.name, self.state["player_positions"][player.name])
 
-        current_cell = self.state["grid"][
-            self.state["player_positions"][player.name][0]
-        ][self.state["player_positions"][player.name][1]]
-
-        if isinstance(current_cell["object"], Portal):
+        if new_cell["objects"] != [] and isinstance(new_cell["objects"][-1], Portal):
             self.state["terminated"] = True
             self.state["success"] = True
             self.state["aborted"] = False
@@ -191,12 +180,12 @@ class PortalGameEnvironment(GridEnvironment):
         self.state["terminated"] = False
         self.state["success"] = True
 
-        if isinstance(current_cell["object"], Switch):
-            current_cell["object"].activated = not current_cell["object"].activated
+        if new_cell["objects"] != [] and isinstance(new_cell["objects"][-1], Switch):
+            new_cell["objects"][-1].activated = not new_cell["objects"][-1].activated
             for row in self.state["grid"]:
                 for cell in row:
-                    if isinstance(cell["object"], Door):
-                        cell["object"].toggle_state()
+                    if isinstance(cell["objects"][-1], Door):
+                        cell["objects"][-1].toggle_state()
 
     def _is_action_valid_in_state(
         self, player: Player, action: PortalAction
@@ -226,12 +215,16 @@ class PortalGameEnvironment(GridEnvironment):
 
         # check if the new position is a wall or closed door
         cell = self.state["grid"][new_row][new_col]
-        if isinstance(cell["object"], Wall):
+        if cell["objects"] != [] and isinstance(cell["objects"][-1], Wall):
             return (
                 False,
                 f"The object at cell ({new_row}, {new_col}) is a wall! You cannot pass through walls! Please try again.",
             )
-        if isinstance(cell["object"], Door) and not cell["object"].is_open:
+        if (
+            cell["objects"] != []
+            and isinstance(cell["objects"][-1], Door)
+            and not cell["objects"][-1].is_open
+        ):
             return (
                 False,
                 f"The object at cell ({new_row}, {new_col}) is a closed door! You need to open it first.",
@@ -249,17 +242,21 @@ class PortalGameEnvironment(GridEnvironment):
             door_state = None
             for row in self.state["grid"]:
                 for cell in row:
-                    if isinstance(cell["object"], Switch):
-                        switch_state = cell["object"].activated
-                    elif isinstance(cell["object"], Door):
-                        door_state = cell["object"].is_open
+                    if cell["objects"] != [] and isinstance(
+                        cell["objects"][-1], Switch
+                    ):
+                        switch_state = cell["objects"][-1].activated
+                    elif cell["objects"] != [] and isinstance(
+                        cell["objects"][-1], Door
+                    ):
+                        door_state = cell["objects"][-1].is_open
 
             if self.state["warning"]:
                 warning = "Warning: " + self.state["warning"]
             else:
                 warning = ""
 
-            observation: PortalObservation = {
+            observation: Observation = {
                 "role": "user",
                 "content": (
                     (f"{warning}\n" if warning else "")
@@ -276,7 +273,6 @@ class PortalGameEnvironment(GridEnvironment):
                     )
                     + f"\nGrid (Visible Area):\n{grid_str}"
                 ),
-                "grid": grid_str,
             }
             self.state["warning"] = ""
 

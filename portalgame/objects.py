@@ -7,7 +7,7 @@ class Wall(Object):
     """A regular wall that blocks movement."""
 
     def __init__(self, position: Tuple[int, int]):
-        super().__init__(position, "Wall", "wall")
+        super().__init__(position, "Wall", "wall", "⬛️")
 
     def can_interact_with(self, other: Object) -> bool:
         return False
@@ -20,7 +20,7 @@ class Portal(Object):
     """A portal that leads to transcendence."""
 
     def __init__(self, position: Tuple[int, int]):
-        super().__init__(position, "Portal", "portal")
+        super().__init__(position, "Portal", "portal", "🌀")
 
     def can_interact_with(self, other: Object) -> bool:
         return isinstance(other, PlayerObject)
@@ -33,7 +33,7 @@ class Door(Object):
     """A door that can be opened and closed."""
 
     def __init__(self, position: Tuple[int, int]):
-        super().__init__(position, "Door", "door")
+        super().__init__(position, "Door", "door", "🚪")
         self.is_open = False
 
     def can_interact_with(self, other: Object) -> bool:
@@ -51,7 +51,7 @@ class Switch(Object):
     """A switch that can be activated by stepping on it."""
 
     def __init__(self, position: Tuple[int, int]):
-        super().__init__(position, "Switch", "switch")
+        super().__init__(position, "Switch", "switch", "🔘")
         self.activated = False
 
     def can_interact_with(self, other: Object) -> bool:

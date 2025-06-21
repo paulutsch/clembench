@@ -2,22 +2,11 @@ import re
 from typing import Dict, List
 
 from clemcore.backends import Model
-from clemcore.clemgame import (
-    ActionSpace,
-    EnvGameMaster,
-    GameBenchmark,
-    GameScorer,
-    GameSpec,
-    Player,
-)
+from clemcore.clemgame import EnvGameMaster, GameBenchmark, GameScorer, GameSpec, Player
 from clemcore.clemgame.metrics import BENCH_SCORE
 from clemcore.utils.logger import format_json, setup_logger
 
-from portalgame.game_environment import (
-    PortalAction,
-    PortalGameEnvironment,
-    PortalObservation,
-)
+from portalgame.game_environment import PortalAction, PortalGameEnvironment
 
 logger = setup_logger(__name__)
 
@@ -79,7 +68,9 @@ class PortalGame(EnvGameMaster):
 
         self.game_environment.reset()
 
-    def _player_response_in_expected_format(self, player: Player, utterance: str) -> bool:
+    def _player_response_in_expected_format(
+        self, player: Player, utterance: str
+    ) -> bool:
         """
         Validate the player's response.
 
