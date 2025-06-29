@@ -1,4 +1,3 @@
-_logger
 adventuregame
 chatgame
 cloudgame
@@ -7,8 +6,10 @@ guesswhat
 hellogame
 imagegame
 multimodal_referencegame
+portalgame
 privateshared
 referencegame
-sudoku
+sudokugame
 taboo
+tictactoegame
 wordle

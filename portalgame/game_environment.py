@@ -1,4 +1,7 @@
-from typing import Dict, List, Tuple
+import base64
+import os
+import tempfile
+from typing import Dict, List, Optional, Tuple
 
 from clemcore.clemgame import (
     Action,
@@ -38,14 +41,14 @@ class PortalGameEnvironment(GridEnvironment):
     """Environment for the Portal game."""
 
     def __init__(
-        self, height: int = 10, width: int = 10, limited_visibility: bool = True
+        self,
+        config: Optional[Dict] = None,
     ):
-        super().__init__(height, width)
-        self.limited_visibility = limited_visibility
+        super().__init__(config=config)
         self.observations: Dict[str, Observation] = {}
         self.action_spaces: Dict[str, ActionSpace] = {}
         self.base_prompt = ""
-        self.config = {}
+        self.config = config or {}
         self.explored: Dict[str, List[List[bool]]] = {}
         self.state: PortalGameState
         self.max_moves: int
@@ -60,7 +63,6 @@ class PortalGameEnvironment(GridEnvironment):
             player_positions={
                 self.players[0].name: self.config["grid"]["player_start"]
             },
-            partial_observability=False,
             success=False,
             terminated=False,
             aborted=False,
@@ -84,16 +86,38 @@ class PortalGameEnvironment(GridEnvironment):
 
         self.base_prompt = self.config["prompt"]
 
-        # Initialize the environment with the grid configuration
-        player_observation: Observation = {
-            "role": "user",
-            "content": (
-                self.base_prompt
-                + "\n\n"
-                + "You initially see the following grid layout:\n"
-                + self.render_state(self.players[0].name)
-            ),
-        }
+        rendered_state = self.render_state(self.players[0].name)
+
+        text_content = (
+            self.base_prompt
+            + "\n\n"
+            + "You initially see the following grid layout:\n"
+            + (
+                rendered_state
+                if isinstance(rendered_state, str)
+                else "[Grid image shown below]"
+            )  # multimodal support
+        )
+
+        # if rendering as image, save to temporary file and add file path to observation
+        if isinstance(rendered_state, bytes):
+            # temporary file to store the image
+            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+            temp_file.write(rendered_state)
+            temp_file.close()
+
+            # add file path to the observation (backends expect file paths, can't work with data URLs)
+            player_observation: Observation = {
+                "role": "user",
+                "content": text_content,
+                "image": [temp_file.name],
+            }
+        else:
+            player_observation: Observation = {
+                "role": "user",
+                "content": text_content,
+            }
+
         initial_observations: Dict[str, Observation] = {
             self.players[0].name: player_observation,
         }
@@ -236,7 +260,7 @@ class PortalGameEnvironment(GridEnvironment):
         """Update the observation for all players."""
         for player in self.players:
             player_pos = self.state["player_positions"][player.name]
-            grid_str = self.render_state(player.name)
+            rendered_state = self.render_state(player.name)
 
             switch_state = None
             door_state = None
@@ -256,24 +280,46 @@ class PortalGameEnvironment(GridEnvironment):
             else:
                 warning = ""
 
-            observation: Observation = {
-                "role": "user",
-                "content": (
-                    (f"{warning}\n" if warning else "")
-                    + f"Current position: {player_pos}\n"
-                    + (
-                        f"Switch active: {switch_state}\n"
-                        if switch_state is not None
-                        else ""
-                    )
-                    + (
-                        f"Door state: {'open' if door_state else 'closed'}\n"
-                        if door_state is not None
-                        else ""
-                    )
-                    + f"\nGrid (Visible Area):\n{grid_str}"
-                ),
-            }
+            text_content = (
+                (f"{warning}\n" if warning else "")
+                + f"Current position: {player_pos}\n"
+                + (
+                    f"Switch active: {switch_state}\n"
+                    if switch_state is not None
+                    else ""
+                )
+                + (
+                    f"Door state: {'open' if door_state else 'closed'}\n"
+                    if door_state is not None
+                    else ""
+                )
+                + f"\nGrid (Visible Area):\n"
+                + (
+                    rendered_state
+                    if isinstance(rendered_state, str)
+                    else "[Grid image shown below]"
+                )  # multimodal support
+            )
+
+            # if rendering as image, save to temporary file and add file path to observation
+            if isinstance(rendered_state, bytes):
+                # Create a temporary file to store the image
+                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+                temp_file.write(rendered_state)
+                temp_file.close()
+
+                # add file path to the observation (backends expect file paths, can't work with data URLs)
+                observation: Observation = {
+                    "role": "user",
+                    "content": text_content,
+                    "image": [temp_file.name],
+                }
+            else:
+                observation: Observation = {
+                    "role": "user",
+                    "content": text_content,
+                }
+
             self.state["warning"] = ""
 
             self.observations[player.name] = observation

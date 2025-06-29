@@ -50,15 +50,8 @@ class PortalGame(EnvGameMaster):
         logger.info("[_on_setup] Setting up PortalGame")
         logger.debug(f"[_on_setup] Game instance: {game_instance}")
 
-        grid_size = game_instance.get("grid_size", 10)
-        logger.info(f"[_on_setup] Grid size: {grid_size}")
-
-        self.game_environment = PortalGameEnvironment(grid_size)
+        self.game_environment = PortalGameEnvironment(config=game_instance)
         logger.info(f"[_on_setup] Game environment: {self.game_environment}")
-
-        # Set the game configuration including grid layout
-        self.game_environment.config = game_instance
-        logger.debug(f"[_on_setup] Set game configuration: {game_instance}")
 
         self.player = PortalPlayer(self.player_models[0])
         logger.debug(f"[_on_setup] Created player: {self.player}")

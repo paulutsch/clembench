@@ -6,8 +6,11 @@
                 {
                     "game_id": 0,
                     "prompt": "You are playing the Portal Game, a maze navigation challenge where your goal is to reach the portal.\n\nGame Elements:\n\n- Portal: Your goal — reach it to win.\n- Door: A door that can be opened or closed.\n- Switch: Opens and closes the door.\n- Regular Walls: You can't pass through them.\n- Empty cells: You can pass through them.\n\nResponse Format: Write one sentence of reasoning above your move. End your response with a line of the form:\n\nDIRECTION: <letter>\n\nwhere <letter> is one of n (to move north/up), s (to move south/down), e (to move east/right), or w (to move west/left).",
-                    "grid_size": 10,
-                    "max_moves": 20,
+                    "height": 10,
+                    "width": 10,
+                    "max_moves": 2,
+                    "limited_visibility": true,
+                    "render_as_image": true,
                     "grid": {
                         "walls": [
                             [0, 0],
@@ -75,8 +78,11 @@
                 {
                     "game_id": 1,
                     "prompt": "You are playing the Portal Game, a maze navigation challenge where your goal is to reach the portal (🟪), which leads to transcendence. The game is played on a grid where you can move in four directions.\n\nGame Elements:\n\n- Portal (🟪): Your goal — reaching it means success.\n- Regular Walls (⬛): You can't pass through them.\n- Empty cells (⬜): You can pass through these.\n\nVisibility:\n- You can only see the cells immediately around you (including diagonals)\n- The rest of the grid is hidden until you explore it\n- Your current position is marked with 👤\n\nGame Objective: Your goal is to find and enter the portal (🟪). Avoid getting stuck in loops.\n\nResponse Format: Write one sentence of reasoning about your move. End your response with a line of the form:\n\nDIRECTION: <letter>\n\nwhere <letter> is one of n (to move north/up), s (to move south/down), e (to move east/right), or w (to move west/left).\n\nThis line must start with DIRECTION:.",
-                    "grid_size": 10,
+                    "height": 10,
+                    "width": 10,
                     "max_moves": 20,
+                    "limited_visibility": true,
+                    "render_as_image": false,
                     "grid": {
                         "walls": [
                             [0, 0],
