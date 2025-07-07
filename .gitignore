@@ -15,3 +15,5 @@ game_registry.json
 model_registry.json
 # custom backends
 *_api.py
+# state representations that are created during gameplay
+interaction_images/

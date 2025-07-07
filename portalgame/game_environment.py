@@ -1,6 +1,5 @@
 import base64
 import os
-import tempfile
 from typing import Dict, List, Optional, Tuple
 
 from clemcore.clemgame import (
@@ -52,6 +51,10 @@ class PortalGameEnvironment(GridEnvironment):
         self.explored: Dict[str, List[List[bool]]] = {}
         self.state: PortalGameState
         self.max_moves: int
+        self.image_counter = 0
+
+        self.images_dir = os.path.join(os.path.dirname(__file__), "interaction_images")
+        os.makedirs(self.images_dir, exist_ok=True)
 
     def reset(self) -> None:
         """Reset the game environment."""
@@ -99,19 +102,21 @@ class PortalGameEnvironment(GridEnvironment):
             )  # multimodal support
         )
 
-        # if rendering as image, save to temporary file and add file path to observation
+        # if rendering as image, save file and add path to observation
         if isinstance(rendered_state, bytes):
-            # temporary file to store the image
-            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
-            temp_file.write(rendered_state)
-            temp_file.close()
+            image_filename = f"image_{self.image_counter}.png"
+            image_path = os.path.join(self.images_dir, image_filename)
+
+            with open(image_path, "wb") as f:
+                f.write(rendered_state)
 
             # add file path to the observation (backends expect file paths, can't work with data URLs)
             player_observation: Observation = {
                 "role": "user",
                 "content": text_content,
-                "image": [temp_file.name],
+                "image": [image_path],
             }
+            self.image_counter += 1
         else:
             player_observation: Observation = {
                 "role": "user",
@@ -301,19 +306,21 @@ class PortalGameEnvironment(GridEnvironment):
                 )  # multimodal support
             )
 
-            # if rendering as image, save to temporary file and add file path to observation
+            # if rendering as image, save file and add path to observation
             if isinstance(rendered_state, bytes):
-                # Create a temporary file to store the image
-                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
-                temp_file.write(rendered_state)
-                temp_file.close()
+                image_filename = f"image_{self.image_counter}.png"
+                image_path = os.path.join(self.images_dir, image_filename)
+
+                with open(image_path, "wb") as f:
+                    f.write(rendered_state)
 
                 # add file path to the observation (backends expect file paths, can't work with data URLs)
                 observation: Observation = {
                     "role": "user",
                     "content": text_content,
-                    "image": [temp_file.name],
+                    "image": [image_path],
                 }
+                self.image_counter += 1
             else:
                 observation: Observation = {
                     "role": "user",
