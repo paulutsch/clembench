@@ -1,5 +1,3 @@
-import base64
-import os
 from typing import Dict, List, Optional, Tuple
 
 from clemcore.clemgame import (
@@ -22,7 +20,7 @@ logger = setup_logger(__name__)
 class PortalAction(Action):
     """Action for the Portal game."""
 
-    action_type: str
+    action_type: str # 'move
     direction: str  # 'n', 's', 'e', 'w'
 
 
@@ -51,24 +49,6 @@ class PortalGameEnvironment(GridEnvironment):
         self.explored: Dict[str, List[List[bool]]] = {}
         self.state: PortalGameState
         self.max_moves: int
-
-    def _store_image(self, image_data: bytes, filename: str) -> Optional[str]:
-        """Store an image using the game recorder.
-
-        Args:
-            image_data: The image data as bytes.
-            filename: The filename for the image.
-
-        Returns:
-            The path to the stored image file, or None if storage failed.
-        """
-        if not self.players:
-            logger.warning("No players available to access game recorder")
-            return None
-
-        game_recorder = self.players[0].game_recorder
-
-        return game_recorder.store_image(image_data, filename)
 
     def reset(self) -> None:
         """Reset the game environment."""
@@ -129,27 +109,25 @@ class PortalGameEnvironment(GridEnvironment):
 
         for wall_pos in grid_config.get("walls", []):
             row, col = wall_pos
-            self.state["grid"][row][col]["objects"].append(Wall(position=(row, col)))
+            self.add_object(Wall(position=(row, col)))
 
         portal_pos = grid_config.get("portal")
         if portal_pos:
             row, col = portal_pos
-            self.state["grid"][row][col]["objects"].append(Portal(position=(row, col)))
+            self.add_object(Portal(position=(row, col)))
 
         switch_pos = grid_config.get("switch")
         if switch_pos:
             row, col = switch_pos
-            self.state["grid"][row][col]["objects"].append(Switch(position=(row, col)))
+            self.add_object(Switch(position=(row, col)))
 
         door_pos = grid_config.get("door")
         if door_pos:
             row, col = door_pos
-            self.state["grid"][row][col]["objects"].append(Door(position=(row, col)))
+            self.add_object(Door(position=(row, col)))
 
         player_start = grid_config.get("player_start", (0, 0))
-        self.state["grid"][player_start[0]][player_start[1]]["objects"].append(
-            PlayerObject(position=player_start, player=self.players[0])
-        )
+        self.add_object(PlayerObject(position=player_start, player=self.players[0]))
 
         self.state["player_positions"][self.players[0].name] = tuple(player_start)
 
@@ -168,9 +146,9 @@ class PortalGameEnvironment(GridEnvironment):
         direction = action.get("direction")
 
         row, col = self.state["player_positions"][player.name]
-        current_cell = self.state["grid"][row][col]
-        player_object = current_cell["objects"][-1]
-        current_cell["objects"].pop()
+        current_cell = self.get_objects_at((row, col))
+        player_object = current_cell[-1]
+        self.remove_object(player_object)
 
         if direction == "n":
             self.state["player_positions"][player.name] = (row - 1, col)
@@ -181,13 +159,13 @@ class PortalGameEnvironment(GridEnvironment):
         elif direction == "w":
             self.state["player_positions"][player.name] = (row, col - 1)
 
-        new_cell = self.state["grid"][self.state["player_positions"][player.name][0]][
-            self.state["player_positions"][player.name][1]
-        ]
-        new_cell["objects"].append(player_object)
+        player_object.position = self.state["player_positions"][player.name]
+        self.add_object(player_object)
         self._mark_explored(player.name, self.state["player_positions"][player.name])
 
-        if new_cell["objects"] != [] and isinstance(new_cell["objects"][-1], Portal):
+        new_cell_objects = self.get_objects_at(self.state["player_positions"][player.name])
+
+        if new_cell_objects != [] and isinstance(new_cell_objects[-1], Portal):
             self.state["terminated"] = True
             self.state["success"] = True
             self.state["aborted"] = False
@@ -197,8 +175,8 @@ class PortalGameEnvironment(GridEnvironment):
         self.state["terminated"] = False
         self.state["success"] = True
 
-        if new_cell["objects"] != [] and isinstance(new_cell["objects"][-1], Switch):
-            new_cell["objects"][-1].activated = not new_cell["objects"][-1].activated
+        if new_cell_objects != [] and isinstance(new_cell_objects[-1], Switch):
+            new_cell_objects[-1].activated = not new_cell_objects[-1].activated
             for row in self.state["grid"]:
                 for cell in row:
                     if isinstance(cell["objects"][-1], Door):
