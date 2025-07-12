@@ -51,7 +51,6 @@ class PortalGameEnvironment(GridEnvironment):
         self.explored: Dict[str, List[List[bool]]] = {}
         self.state: PortalGameState
         self.max_moves: int
-        self.image_counter = 0
 
     def _store_image(self, image_data: bytes, filename: str) -> Optional[str]:
         """Store an image using the game recorder.
@@ -107,44 +106,13 @@ class PortalGameEnvironment(GridEnvironment):
         rendered_state = self.render_state(self.players[0].name)
 
         text_content = (
-            self.base_prompt
-            + "\n\n"
-            + "You initially see the following grid layout:\n"
-            + (
-                rendered_state
-                if isinstance(rendered_state, str)
-                else "[Grid image shown below]"
-            )  # multimodal support
+            self.base_prompt + "\n\n" + "You initially see the following grid layout:\n"
         )
 
-        # if rendering as image, save file and add path to observation
-        if isinstance(rendered_state, bytes):
-            image_filename = f"image_{self.image_counter}.png"
-
-            stored_path = self._store_image(rendered_state, image_filename)
-            if stored_path:
-                logger.info(f"Stored image to results directory: {stored_path}")
-                # add file path to the observation (backends expect file paths, can't work with data URLs)
-                player_observation: Observation = {
-                    "role": "user",
-                    "content": text_content,
-                    "image": [stored_path],
-                }
-            else:
-                logger.info("Failed to store image, skipping image in observation")
-                player_observation: Observation = {
-                    "role": "user",
-                    "content": text_content,
-                }
-            self.image_counter += 1
-        else:
-            player_observation: Observation = {
-                "role": "user",
-                "content": text_content,
-            }
+        observation = self._create_observation(text_content, rendered_state)
 
         initial_observations: Dict[str, Observation] = {
-            self.players[0].name: player_observation,
+            self.players[0].name: observation,
         }
         initial_action_spaces: Dict[str, ActionSpace] = {self.players[0].name: ["move"]}
 
@@ -319,38 +287,9 @@ class PortalGameEnvironment(GridEnvironment):
                     else ""
                 )
                 + f"\nGrid (Visible Area):\n"
-                + (
-                    rendered_state
-                    if isinstance(rendered_state, str)
-                    else "[Grid image shown below]"
-                )  # multimodal support
             )
 
-            # if rendering as image, save file and add path to observation
-            if isinstance(rendered_state, bytes):
-                image_filename = f"image_{self.image_counter}.png"
-
-                stored_path = self._store_image(rendered_state, image_filename)
-                if stored_path:
-                    logger.info(f"Stored image to results directory: {stored_path}")
-                    # add file path to the observation (backends expect file paths, can't work with data URLs)
-                    observation: Observation = {
-                        "role": "user",
-                        "content": text_content,
-                        "image": [stored_path],
-                    }
-                else:
-                    logger.info("Failed to store image, skipping image in observation")
-                    observation: Observation = {
-                        "role": "user",
-                        "content": text_content,
-                    }
-                self.image_counter += 1
-            else:
-                observation: Observation = {
-                    "role": "user",
-                    "content": text_content,
-                }
+            observation = self._create_observation(text_content, rendered_state)
 
             self.state["warning"] = ""
 
