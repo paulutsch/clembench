@@ -53,8 +53,23 @@ class PortalGameEnvironment(GridEnvironment):
         self.max_moves: int
         self.image_counter = 0
 
-        self.images_dir = os.path.join(os.path.dirname(__file__), "interaction_images")
-        os.makedirs(self.images_dir, exist_ok=True)
+    def _store_image(self, image_data: bytes, filename: str) -> Optional[str]:
+        """Store an image using the game recorder.
+
+        Args:
+            image_data: The image data as bytes.
+            filename: The filename for the image.
+
+        Returns:
+            The path to the stored image file, or None if storage failed.
+        """
+        if not self.players:
+            logger.warning("No players available to access game recorder")
+            return None
+
+        game_recorder = self.players[0].game_recorder
+
+        return game_recorder.store_image(image_data, filename)
 
     def reset(self) -> None:
         """Reset the game environment."""
@@ -105,17 +120,22 @@ class PortalGameEnvironment(GridEnvironment):
         # if rendering as image, save file and add path to observation
         if isinstance(rendered_state, bytes):
             image_filename = f"image_{self.image_counter}.png"
-            image_path = os.path.join(self.images_dir, image_filename)
 
-            with open(image_path, "wb") as f:
-                f.write(rendered_state)
-
-            # add file path to the observation (backends expect file paths, can't work with data URLs)
-            player_observation: Observation = {
-                "role": "user",
-                "content": text_content,
-                "image": [image_path],
-            }
+            stored_path = self._store_image(rendered_state, image_filename)
+            if stored_path:
+                logger.info(f"Stored image to results directory: {stored_path}")
+                # add file path to the observation (backends expect file paths, can't work with data URLs)
+                player_observation: Observation = {
+                    "role": "user",
+                    "content": text_content,
+                    "image": [stored_path],
+                }
+            else:
+                logger.info("Failed to store image, skipping image in observation")
+                player_observation: Observation = {
+                    "role": "user",
+                    "content": text_content,
+                }
             self.image_counter += 1
         else:
             player_observation: Observation = {
@@ -309,17 +329,22 @@ class PortalGameEnvironment(GridEnvironment):
             # if rendering as image, save file and add path to observation
             if isinstance(rendered_state, bytes):
                 image_filename = f"image_{self.image_counter}.png"
-                image_path = os.path.join(self.images_dir, image_filename)
 
-                with open(image_path, "wb") as f:
-                    f.write(rendered_state)
-
-                # add file path to the observation (backends expect file paths, can't work with data URLs)
-                observation: Observation = {
-                    "role": "user",
-                    "content": text_content,
-                    "image": [image_path],
-                }
+                stored_path = self._store_image(rendered_state, image_filename)
+                if stored_path:
+                    logger.info(f"Stored image to results directory: {stored_path}")
+                    # add file path to the observation (backends expect file paths, can't work with data URLs)
+                    observation: Observation = {
+                        "role": "user",
+                        "content": text_content,
+                        "image": [stored_path],
+                    }
+                else:
+                    logger.info("Failed to store image, skipping image in observation")
+                    observation: Observation = {
+                        "role": "user",
+                        "content": text_content,
+                    }
                 self.image_counter += 1
             else:
                 observation: Observation = {
