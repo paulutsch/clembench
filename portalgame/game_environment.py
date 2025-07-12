@@ -109,22 +109,22 @@ class PortalGameEnvironment(GridEnvironment):
 
         for wall_pos in grid_config.get("walls", []):
             row, col = wall_pos
-            self.add_object(Wall(position=(col, row)))
+            self.add_object(Wall(position=(row, col)))
 
         portal_pos = grid_config.get("portal")
         if portal_pos:
             row, col = portal_pos
-            self.add_object(Portal(position=(col, row)))
+            self.add_object(Portal(position=(row, col)))
 
         switch_pos = grid_config.get("switch")
         if switch_pos:
             row, col = switch_pos
-            self.add_object(Switch(position=(col, row)))
+            self.add_object(Switch(position=(row, col)))
 
         door_pos = grid_config.get("door")
         if door_pos:
             row, col = door_pos
-            self.add_object(Door(position=(col, row)))
+            self.add_object(Door(position=(row, col)))
 
         player_start = grid_config.get("player_start", (0, 0))
         self.add_object(PlayerObject(position=player_start, player=self.players[0]))
@@ -145,19 +145,19 @@ class PortalGameEnvironment(GridEnvironment):
         """Update the game state based on the action."""
         direction = action.get("direction")
 
-        row, col = self.state["player_positions"][player.name]
-        current_cell = self.get_objects_at((row, col))
+        y, x = self.state["player_positions"][player.name]
+        current_cell = self.get_objects_at((y, x))
         player_object = current_cell[-1]
         self.remove_object(player_object)
 
         if direction == "n":
-            self.state["player_positions"][player.name] = (row - 1, col)
+            self.state["player_positions"][player.name] = (y - 1, x)
         elif direction == "s":
-            self.state["player_positions"][player.name] = (row + 1, col)
+            self.state["player_positions"][player.name] = (y + 1, x)
         elif direction == "e":
-            self.state["player_positions"][player.name] = (row, col + 1)
+            self.state["player_positions"][player.name] = (y, x + 1)
         elif direction == "w":
-            self.state["player_positions"][player.name] = (row, col - 1)
+            self.state["player_positions"][player.name] = (y, x - 1)
 
         player_object.position = self.state["player_positions"][player.name]
         self.add_object(player_object)
@@ -179,8 +179,8 @@ class PortalGameEnvironment(GridEnvironment):
 
         if new_cell_objects != [] and isinstance(new_cell_objects[-1], Switch):
             new_cell_objects[-1].activated = not new_cell_objects[-1].activated
-            for row in self.state["grid"]:
-                for cell in row:
+            for y in self.state["grid"]:
+                for cell in y:
                     if isinstance(cell["objects"][-1], Door):
                         cell["objects"][-1].toggle_state()
 
@@ -190,32 +190,32 @@ class PortalGameEnvironment(GridEnvironment):
         # action_type is already checked in the base class — need to only check the direction
         direction = action.get("direction")
         """Check if a move is valid."""
-        row, col = self.state["player_positions"][player.name]
+        y, x = self.state["player_positions"][player.name]
         if direction == "n":
-            new_pos = (row - 1, col)
+            new_pos = (y - 1, x)
         elif direction == "s":
-            new_pos = (row + 1, col)
+            new_pos = (y + 1, x)
         elif direction == "e":
-            new_pos = (row, col + 1)
+            new_pos = (y, x + 1)
         elif direction == "w":
-            new_pos = (row, col - 1)
+            new_pos = (y, x - 1)
         else:
             return False, f"Invalid direction: {direction}! Please try again."
 
-        new_row, new_col = new_pos
+        new_y, new_x = new_pos
         # check if the new position is within the grid
-        if not (0 <= new_row < self.height and 0 <= new_col < self.width):
+        if not (0 <= new_y < self.height and 0 <= new_x < self.width):
             return (
                 False,
-                f"The cell ({new_row}, {new_col}) is outside the grid! Please try again.",
+                f"The cell ({new_y}, {new_x}) is outside the grid! Please try again.",
             )
 
         # check if the new position is a wall or closed door
-        cell = self.state["grid"][new_row][new_col]
+        cell = self.state["grid"][new_y][new_x]
         if cell["objects"] != [] and isinstance(cell["objects"][-1], Wall):
             return (
                 False,
-                f"The object at cell ({new_row}, {new_col}) is a wall! You cannot pass through walls! Please try again.",
+                f"The object at cell ({new_y}, {new_x}) is a wall! You cannot pass through walls! Please try again.",
             )
         if (
             cell["objects"] != []
@@ -224,7 +224,7 @@ class PortalGameEnvironment(GridEnvironment):
         ):
             return (
                 False,
-                f"The object at cell ({new_row}, {new_col}) is a closed door! You need to open it first.",
+                f"The object at cell ({new_y}, {new_x}) is a closed door! You need to open it first.",
             )
 
         return True, ""

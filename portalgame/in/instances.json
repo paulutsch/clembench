@@ -10,7 +10,7 @@
                     "width": 10,
                     "max_moves": 10,
                     "limited_visibility": true,
-                    "render_as": "human-readable",
+                    "render_as": "image",
                     "grid": {
                         "walls": [
                             [0, 0],
