@@ -20,7 +20,7 @@ logger = setup_logger(__name__)
 class PortalAction(Action):
     """Action for the Portal game."""
 
-    action_type: str # 'move
+    action_type: str  # 'move
     direction: str  # 'n', 's', 'e', 'w'
 
 
@@ -109,22 +109,22 @@ class PortalGameEnvironment(GridEnvironment):
 
         for wall_pos in grid_config.get("walls", []):
             row, col = wall_pos
-            self.add_object(Wall(position=(row, col)))
+            self.add_object(Wall(position=(col, row)))
 
         portal_pos = grid_config.get("portal")
         if portal_pos:
             row, col = portal_pos
-            self.add_object(Portal(position=(row, col)))
+            self.add_object(Portal(position=(col, row)))
 
         switch_pos = grid_config.get("switch")
         if switch_pos:
             row, col = switch_pos
-            self.add_object(Switch(position=(row, col)))
+            self.add_object(Switch(position=(col, row)))
 
         door_pos = grid_config.get("door")
         if door_pos:
             row, col = door_pos
-            self.add_object(Door(position=(row, col)))
+            self.add_object(Door(position=(col, row)))
 
         player_start = grid_config.get("player_start", (0, 0))
         self.add_object(PlayerObject(position=player_start, player=self.players[0]))
@@ -163,7 +163,9 @@ class PortalGameEnvironment(GridEnvironment):
         self.add_object(player_object)
         self._mark_explored(player.name, self.state["player_positions"][player.name])
 
-        new_cell_objects = self.get_objects_at(self.state["player_positions"][player.name])
+        new_cell_objects = self.get_objects_at(
+            self.state["player_positions"][player.name]
+        )
 
         if new_cell_objects != [] and isinstance(new_cell_objects[-1], Portal):
             self.state["terminated"] = True
