@@ -4,11 +4,12 @@ import numpy as np
 from clemcore.clemgame import (
     Action,
     ActionSpace,
-    GameEnvironment,
-    GameState,
+    GridEnvironment,
+    Object,
     Observation,
     Player,
 )
+from clemcore.clemgame.grid_environment import Position
 from clemcore.utils.logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -18,11 +19,6 @@ class TicTacToeAction(Action):
     action_type: str
     row: int
     col: int
-
-
-class TicTacToeObservation(Observation):
-    role: Literal["user"]
-    content: str
 
 
 class TicTacToePlayer(Player):
@@ -36,53 +32,69 @@ class TicTacToePlayer(Player):
         return "Hello, world!"
 
 
-class TicTacToeGameState(GameState):
-    board: list[list[Literal["X", "O", "▢"]]]
-    current_player: int
-    winner: Optional[int]
+class TicTacToeCell(Object):
+    """Represents a cell in the TicTacToe grid."""
+
+    def __init__(self, position: Position, value: str = " "):
+        logger.info(f"Initializing TicTacToeCell with value: {value}")
+        symbol = "❎" if value == "X" else "🅾️" if value == "O" else "⬜️"
+        pretty_symbol = "❎" if value == "X" else "🅾️" if value == "O" else "⬜️"
+        super().__init__(
+            position, f"cell_{position[0]}_{position[1]}", symbol, pretty_symbol
+        )
 
 
-class TicTacToeEnvironment(GameEnvironment):
+class TicTacToeEnvironment(GridEnvironment):
     """Environment for the TicTacToe game."""
 
-    def __init__(self):
-        super().__init__()
-        self.state: TicTacToeGameState = TicTacToeGameState(
-            board=[["▢" for _ in range(3)] for _ in range(3)],
-            current_player=1,  # 1 for X, 2 for O
-            success=False,
-            terminated=False,
-            aborted=False,
-            winner=None,
-            moves=0,
-            warning="",
-        )
-        self.base_prompt = ""
-        self.config = {}
-        self.observations: Dict[str, TicTacToeObservation] = {}
-        self.action_spaces: Dict[str, ActionSpace] = {}
+    def __init__(self, config: Optional[Dict] = None):
 
+        super().__init__(config=config)
+
+        self.observations: Dict[str, Observation] = {}
+        self.action_spaces: Dict[str, ActionSpace] = {}
         self.players: List[TicTacToePlayer] = []
+        self.current_player = 1  # 1 for X, 2 for O
+
+        self._initialize_grid()
+
+    def _initialize_grid(self):
+        """Initialize the grid with empty TicTacToe cells."""
+        for i in range(3):
+            for j in range(3):
+                cell = TicTacToeCell((i, j), "")
+                self.add_object(cell)
 
     def reset(
         self,
-        initial_observations: Dict[str, Observation],
-        initial_action_spaces: Dict[str, ActionSpace],
+        initial_observations: Optional[Dict[str, Observation]] = None,
+        initial_action_spaces: Optional[Dict[str, ActionSpace]] = None,
     ) -> None:
         """Reset the game environment."""
-        super().reset(initial_observations, initial_action_spaces)
-        self.state: TicTacToeGameState = TicTacToeGameState(
-            board=[["▢" for _ in range(3)] for _ in range(3)],
-            current_player=1,  # 1 for X, 2 for O
-            success=False,
-            terminated=False,
-            aborted=False,
-            winner=None,
-            moves=0,
-            warning="",
-        )
+        super().reset(initial_observations, initial_action_spaces)  # type: ignore
+        self.current_player = 1
+        self._initialize_grid()
 
-    def format_board(self, board: list[list[Literal["X", "O", "▢"]]]) -> str:
+        self.update_observations()
+
+        for player in self.players:
+            self.set_action_space(player, ["make_move"])
+
+    def _get_board_from_grid(self) -> List[List[str]]:
+        """Extract board state from grid objects."""
+        board = [[" " for _ in range(3)] for _ in range(3)]
+        for i in range(3):
+            for j in range(3):
+                objects = self.get_objects_at((i, j))
+                if objects:
+                    cell = objects[0]
+                    if isinstance(cell, TicTacToeCell):
+                        board[i][j] = cell.symbol
+
+        logger.info(f"Board: {board}")
+        return board
+
+    def format_board(self, board: List[List[str]]) -> str:
         """Format the board for display with ASCII grid."""
         board_str = ""
         for i in range(3):
@@ -93,11 +105,25 @@ class TicTacToeEnvironment(GameEnvironment):
 
     def _is_action_valid_in_state(
         self, player: TicTacToePlayer, action: TicTacToeAction
-    ) -> bool:
+    ) -> tuple[bool, str]:
         """Check if an action is valid in the current state."""
         row = action.get("row")
         col = action.get("col")
-        return self.is_valid_move(row, col)
+
+        if row is None or col is None:
+            logger.warning(f"Missing row or col in action: {action}")
+            return False, "Missing row or col in action"
+
+        if not (0 <= row < 3 and 0 <= col < 3):
+            logger.warning(f"Position ({row}, {col}) is out of bounds")
+            return False, f"Position ({row}, {col}) is out of bounds"
+
+        board = self._get_board_from_grid()
+        if board[row][col] != "⬜️":
+            logger.warning(f"Position ({row}, {col}) is already occupied")
+            return False, f"Position ({row}, {col}) is already occupied"
+
+        return True, ""
 
     def is_valid_move(self, row: int | None, col: int | None) -> bool:
         """Check if a move is valid."""
@@ -109,7 +135,9 @@ class TicTacToeEnvironment(GameEnvironment):
 
         row_is_valid = 0 <= row < 3
         col_is_valid = 0 <= col < 3
-        cell_is_empty = self.state["board"][row][col] == "▢"
+
+        board = self._get_board_from_grid()
+        cell_is_empty = board[row][col] == " "
 
         logger.info(
             f"Row is valid: {row_is_valid}, Col is valid: {col_is_valid}, Cell is empty: {cell_is_empty}"
@@ -119,44 +147,40 @@ class TicTacToeEnvironment(GameEnvironment):
 
     def check_game_state(self) -> None:
         """Check if the game is over (win or draw)."""
-        board = np.array(self.state["board"])
+        board = self._get_board_from_grid()
+        board_np = np.array(board)
 
         self.state["success"] = True
         self.state["aborted"] = False
         self.state["terminated"] = False
 
         for i in range(3):
-            if all(board[i, :] == "X") or all(board[:, i] == "X"):
+            if all(board_np[i, :] == "❎") or all(board_np[:, i] == "❎"):
                 logger.info(f"X wins on row {i}")
                 self.state["terminated"] = True
-                self.state["winner"] = 1
                 self.state["success"] = True
                 return
-            if all(board[i, :] == "O") or all(board[:, i] == "O"):
+            if all(board_np[i, :] == "🅾️") or all(board_np[:, i] == "🅾️"):
                 logger.info(f"O wins on row {i}")
                 self.state["terminated"] = True
-                self.state["winner"] = 2
                 self.state["success"] = True
                 return
 
-        if all(np.diag(board) == "X") or all(np.diag(np.fliplr(board)) == "X"):
+        if all(np.diag(board_np) == "❎") or all(np.diag(np.fliplr(board_np)) == "❎"):
             logger.info("X wins on diagonal")
             self.state["terminated"] = True
-            self.state["winner"] = 1
             self.state["success"] = True
             return
-        if all(np.diag(board) == "O") or all(np.diag(np.fliplr(board)) == "O"):
+        if all(np.diag(board_np) == "🅾️") or all(np.diag(np.fliplr(board_np)) == "🅾️"):
             logger.info("O wins on diagonal")
             self.state["terminated"] = True
-            self.state["winner"] = 2
             self.state["success"] = True
             return
 
-        if np.all(board != "▢"):
+        if np.all(board_np != "⬜️"):
             logger.info("Draw")
             self.state["terminated"] = True
-            self.state["winner"] = 0  # draw
-            self.state["success"] = True  # let's be generous
+            self.state["success"] = True
             return
 
         logger.info("Game continues")
@@ -164,26 +188,28 @@ class TicTacToeEnvironment(GameEnvironment):
     def update_observations(self) -> None:
         """Update the observation for all players."""
         for player in self.players:
-            if self.state["moves"] > 1:
-                if self.state["warning"] != "":
-                    prompt = self.state["warning"]
-                    self.state["warning"] = ""
-                else:
-                    prompt = (
-                        "The other player made a move. The new board is:\n\n"
-                        + self.format_board(self.state["board"])
-                        + "\n\nMake your next move in the format described before."
-                    )
-                self.observations[player.name]["content"] = prompt
+            rendered_state = self.render_state()
 
+            if self.state["warning"]:
+                warning = "Warning: " + self.state["warning"]
             else:
-                prompt = (
-                    self.base_prompt
-                    + f"\n\nYou are the player that plays {player.symbol}.\n\n"
-                    + "The current board is:\n\n"
-                    + self.format_board(self.state["board"])
+                warning = ""
+
+            text_content = (
+                (
+                    self.config.get("prompt", "")
+                    + "\n\n"
+                    + f"You are the player that plays {player.symbol}.\n\n"
                 )
-                self.observations[player.name]["content"] = prompt
+                if self.state["moves"] < 2
+                else "" + (f"{warning}\n" if warning else "") + "The board is:\n\n"
+            )
+
+            observation = self._create_observation(text_content, rendered_state)
+
+            self.state["warning"] = ""
+
+            self.observations[player.name] = observation
 
     def _update_state_through_action(
         self, player: TicTacToePlayer, action: TicTacToeAction
@@ -192,10 +218,34 @@ class TicTacToeEnvironment(GameEnvironment):
         row = action["row"]
         col = action["col"]
 
-        self.state["board"][row][col] = (
-            "X" if self.state["current_player"] == 1 else "O"
-        )
+        logger.info(f"Updating state through action: {action}")
+
+        objects = self.get_objects_at((row, col))
+        if objects:
+            self.remove_object(objects[0])
+
+        logger.info(f"Objects at {row}, {col}: {objects}")
+
+        symbol = "X" if self.current_player == 1 else "O"
+        new_cell = TicTacToeCell((row, col), value=symbol)
+        logger.info(f"Adding new cell: {new_cell}")
+        self.add_object(new_cell)
+
+        logger.info(f"Objects after adding new cell: {self.get_objects_at((row, col))}")
 
         self.check_game_state()
 
-        self.state["current_player"] = 1 if self.state["current_player"] == 2 else 2
+        self.current_player = 1 if self.current_player == 2 else 2
+
+    def _render_state_as_string(self, player_name: str | None = None) -> str:
+        """Render state as string."""
+        board = self._get_board_from_grid()
+        return self.format_board(board)
+
+    def _render_state_as_image(self, player_name: str | None = None) -> bytes:
+        """Render state as image (not implemented for TicTacToe)."""
+        return b""
+
+    def _render_state_as_human_readable(self, player_name: str | None = None) -> str:
+        """Render state in human readable format."""
+        return self._render_state_as_string()

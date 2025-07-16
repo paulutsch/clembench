@@ -15,7 +15,6 @@ from clemcore.utils.logger import format_json, setup_logger
 from tictactoegame.game_environment import (
     TicTacToeAction,
     TicTacToeEnvironment,
-    TicTacToeObservation,
     TicTacToePlayer,
 )
 
@@ -50,9 +49,7 @@ class TicTacToeGame(EnvGameMaster):
         logger.info("[_on_setup] Setting up TicTacToeGame")
         logger.debug(f"[_on_setup] Game instance: {game_instance}")
 
-        self.game_environment = TicTacToeEnvironment()
-        logger.info(f"[_on_setup] Game environment: {self.game_environment}")
-        self.game_environment.config = game_instance
+        self.game_environment = TicTacToeEnvironment(game_instance)
 
         self.player_x = TicTacToePlayer(self.player_models[0])
         self.player_o = TicTacToePlayer(self.player_models[1])
@@ -67,30 +64,7 @@ class TicTacToeGame(EnvGameMaster):
             f"[_on_setup] Added players: {self.player_x.name}, {self.player_o.name}"
         )
 
-        self.game_environment.base_prompt = game_instance["prompt"]
-
-        board = self.game_environment.format_board(self.game_environment.state["board"])
-        player_x_observation: TicTacToeObservation = {
-            "role": "user",
-            "content": game_instance["prompt"]
-            + "\n\nYou are the player that plays X.\n\n"
-            + board,
-        }
-        player_o_observation: TicTacToeObservation = {
-            "role": "user",
-            "content": game_instance["prompt"]
-            + "\n\nYou are the player that plays O.\n\n"
-            + board,
-        }
-        initial_observations: Dict[str, Observation] = {
-            self.player_x.name: player_x_observation,
-            self.player_o.name: player_o_observation,
-        }
-        initial_action_spaces: Dict[str, ActionSpace] = {
-            self.player_x.name: ["make_move"],
-            self.player_o.name: ["make_move"],
-        }
-        self.game_environment.reset(initial_observations, initial_action_spaces)
+        self.game_environment.reset()
 
     def _player_response_in_expected_format(
         self, player: TicTacToePlayer, utterance: str
@@ -163,23 +137,6 @@ class TicTacToeGame(EnvGameMaster):
     def _does_game_proceed(self) -> bool:
         """Check if the game should continue."""
         return not self.game_environment.state["terminated"]
-
-    def _on_after_turn(self, player: TicTacToePlayer) -> None:
-        """Handle actions after a player's turn."""
-        if self.game_environment.state["terminated"]:
-            winner = self.game_environment.state["winner"]
-            if winner == 0:
-                message = "Game ended in a draw!"
-            else:
-                winner_player = self.player_x if winner == 1 else self.player_o
-                message = (
-                    f"Game over! {winner_player.name} ({winner_player.symbol}) wins!"
-                )
-
-            for p in [self.player_x, self.player_o]:
-                self.game_environment.observations[p.name][
-                    "content"
-                ] += f"\n\n{message}"
 
 
 class TicTacToeGameScorer(GameScorer):

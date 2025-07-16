@@ -53,7 +53,6 @@ class SudokuEnvironment(GridEnvironment):
         config: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(config=config)
-        self.config = config or {}
         self.grid_size = self.config.get("width", 9)
 
         puzzle = Sudoku(self.grid_size // 3).difficulty(
