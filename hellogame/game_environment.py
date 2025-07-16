@@ -78,6 +78,8 @@ class HelloGameEnvironment(GameEnvironment):
             "success": False,
             "aborted": False,
             "terminated": False,
+            "moves": 0,
+            "warning": "",
         }
         logger.debug(f"[reset] Reset state — new state: \n{format_json(self.state)}")
 
@@ -131,3 +133,28 @@ class HelloGameEnvironment(GameEnvironment):
                 missing_words.append(required_word)
 
         self.state["missing_words"] = missing_words
+
+    def _is_action_valid_in_state(
+        self, player: Player, action: HelloGameAction
+    ) -> tuple[bool, str]:
+        """Check if action is valid in current state."""
+        return True, ""
+
+    def update_observations(self):
+        """Update observations for all players."""
+        for player in self.players:
+            self.update_observation(player)
+
+    def _render_state_as_string(self, player_name: str | None = None) -> str:
+        """Render state as string."""
+        return (
+            f"Success: {self.state['success']}, Missing: {self.state['missing_words']}"
+        )
+
+    def _render_state_as_image(self, player_name: str | None = None) -> bytes:
+        """Render state as image (not implemented for HelloGame)."""
+        return b""
+
+    def _render_state_as_human_readable(self, player_name: str | None = None) -> str:
+        """Render state in human readable format."""
+        return self._render_state_as_string(player_name)

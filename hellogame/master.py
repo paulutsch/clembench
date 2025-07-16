@@ -13,7 +13,7 @@ from clemcore.clemgame import (
 from clemcore.clemgame.metrics import BENCH_SCORE
 from clemcore.utils.logger import format_json, setup_logger
 
-from hellogame.game_environment import HelloGameEnvironment
+from hellogame.game_environment import HelloGameAction, HelloGameEnvironment
 
 logger = setup_logger(__name__)
 
@@ -127,6 +127,16 @@ class HelloGame(EnvGameMaster):
         score = 1.0 if self.game_environment.state["success"] else 0.0
         logger.info(f"[_compute_episode_score] Episode score: {score}")
         return score
+
+    def _player_response_in_expected_format(
+        self, player: Player, response: str
+    ) -> bool:
+        """Check if player response is in expected format."""
+        return bool(response.strip())
+
+    def _parse_action_from_response(self, response: str) -> HelloGameAction:
+        """Parse action from player response."""
+        return {"action_type": "verbal_response", "message": response}
 
 
 class HelloGameScorer(GameScorer):
