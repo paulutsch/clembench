@@ -36,7 +36,6 @@ class TicTacToeCell(Object):
     """Represents a cell in the TicTacToe grid."""
 
     def __init__(self, position: Position, value: str = " "):
-        logger.info(f"Initializing TicTacToeCell with value: {value}")
         symbol = "❎" if value == "X" else "🅾️" if value == "O" else "⬜️"
         pretty_symbol = "❎" if value == "X" else "🅾️" if value == "O" else "⬜️"
         super().__init__(
@@ -91,7 +90,6 @@ class TicTacToeEnvironment(GridEnvironment):
                     if isinstance(cell, TicTacToeCell):
                         board[i][j] = cell.symbol
 
-        logger.info(f"Board: {board}")
         return board
 
     def format_board(self, board: List[List[str]]) -> str:
@@ -127,7 +125,6 @@ class TicTacToeEnvironment(GridEnvironment):
 
     def is_valid_move(self, row: int | None, col: int | None) -> bool:
         """Check if a move is valid."""
-        logger.info(f"Checking if move {row}, {col} is valid")
 
         if row is None or col is None:
             logger.warning(f"Invalid move: {row}, {col}")
@@ -138,10 +135,6 @@ class TicTacToeEnvironment(GridEnvironment):
 
         board = self._get_board_from_grid()
         cell_is_empty = board[row][col] == " "
-
-        logger.info(
-            f"Row is valid: {row_is_valid}, Col is valid: {col_is_valid}, Cell is empty: {cell_is_empty}"
-        )
 
         return row_is_valid and col_is_valid and cell_is_empty
 
@@ -156,34 +149,27 @@ class TicTacToeEnvironment(GridEnvironment):
 
         for i in range(3):
             if all(board_np[i, :] == "❎") or all(board_np[:, i] == "❎"):
-                logger.info(f"X wins on row {i}")
                 self.state["terminated"] = True
                 self.state["success"] = True
                 return
             if all(board_np[i, :] == "🅾️") or all(board_np[:, i] == "🅾️"):
-                logger.info(f"O wins on row {i}")
                 self.state["terminated"] = True
                 self.state["success"] = True
                 return
 
         if all(np.diag(board_np) == "❎") or all(np.diag(np.fliplr(board_np)) == "❎"):
-            logger.info("X wins on diagonal")
             self.state["terminated"] = True
             self.state["success"] = True
             return
         if all(np.diag(board_np) == "🅾️") or all(np.diag(np.fliplr(board_np)) == "🅾️"):
-            logger.info("O wins on diagonal")
             self.state["terminated"] = True
             self.state["success"] = True
             return
 
         if np.all(board_np != "⬜️"):
-            logger.info("Draw")
             self.state["terminated"] = True
             self.state["success"] = True
             return
-
-        logger.info("Game continues")
 
     def update_observations(self) -> None:
         """Update the observation for all players."""
@@ -218,34 +204,14 @@ class TicTacToeEnvironment(GridEnvironment):
         row = action["row"]
         col = action["col"]
 
-        logger.info(f"Updating state through action: {action}")
-
         objects = self.get_objects_at((row, col))
         if objects:
             self.remove_object(objects[0])
 
-        logger.info(f"Objects at {row}, {col}: {objects}")
-
         symbol = "X" if self.current_player == 1 else "O"
         new_cell = TicTacToeCell((row, col), value=symbol)
-        logger.info(f"Adding new cell: {new_cell}")
         self.add_object(new_cell)
-
-        logger.info(f"Objects after adding new cell: {self.get_objects_at((row, col))}")
 
         self.check_game_state()
 
         self.current_player = 1 if self.current_player == 2 else 2
-
-    def _render_state_as_string(self, player_name: str | None = None) -> str:
-        """Render state as string."""
-        board = self._get_board_from_grid()
-        return self.format_board(board)
-
-    def _render_state_as_image(self, player_name: str | None = None) -> bytes:
-        """Render state as image (not implemented for TicTacToe)."""
-        return b""
-
-    def _render_state_as_human_readable(self, player_name: str | None = None) -> str:
-        """Render state in human readable format."""
-        return self._render_state_as_string()
