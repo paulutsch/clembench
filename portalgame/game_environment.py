@@ -167,7 +167,7 @@ class PortalGameEnvironment(GridEnvironment):
             self.state["player_positions"][player.name]
         )
 
-        if new_cell_objects != [] and isinstance(new_cell_objects[-1], Portal):
+        if new_cell_objects != [] and isinstance(new_cell_objects[0], Portal):
             self.state["terminated"] = True
             self.state["success"] = True
             self.state["aborted"] = False
@@ -177,12 +177,17 @@ class PortalGameEnvironment(GridEnvironment):
         self.state["terminated"] = False
         self.state["success"] = True
 
-        if new_cell_objects != [] and isinstance(new_cell_objects[-1], Switch):
-            new_cell_objects[-1].activated = not new_cell_objects[-1].activated
+        logger.info(f"New cell objects: {new_cell_objects}")
+
+        if new_cell_objects != [] and isinstance(new_cell_objects[0], Switch):
+            logger.info(
+                f"Switch activated at {self.state['player_positions'][player.name]}"
+            )
+            new_cell_objects[0].activated = not new_cell_objects[0].activated
             for y in self.state["grid"]:
                 for cell in y:
-                    if isinstance(cell["objects"][-1], Door):
-                        cell["objects"][-1].toggle_state()
+                    if cell["objects"] != [] and isinstance(cell["objects"][0], Door):
+                        cell["objects"][0].toggle_state()
 
     def _is_action_valid_in_state(
         self, player: Player, action: PortalAction
@@ -212,15 +217,15 @@ class PortalGameEnvironment(GridEnvironment):
 
         # check if the new position is a wall or closed door
         cell = self.state["grid"][new_y][new_x]
-        if cell["objects"] != [] and isinstance(cell["objects"][-1], Wall):
+        if cell["objects"] != [] and isinstance(cell["objects"][0], Wall):
             return (
                 False,
                 f"The object at cell ({new_y}, {new_x}) is a wall! You cannot pass through walls! Please try again.",
             )
         if (
             cell["objects"] != []
-            and isinstance(cell["objects"][-1], Door)
-            and not cell["objects"][-1].is_open
+            and isinstance(cell["objects"][0], Door)
+            and not cell["objects"][0].is_open
         ):
             return (
                 False,
@@ -239,14 +244,10 @@ class PortalGameEnvironment(GridEnvironment):
             door_state = None
             for row in self.state["grid"]:
                 for cell in row:
-                    if cell["objects"] != [] and isinstance(
-                        cell["objects"][-1], Switch
-                    ):
-                        switch_state = cell["objects"][-1].activated
-                    elif cell["objects"] != [] and isinstance(
-                        cell["objects"][-1], Door
-                    ):
-                        door_state = cell["objects"][-1].is_open
+                    if cell["objects"] != [] and isinstance(cell["objects"][0], Switch):
+                        switch_state = cell["objects"][0].activated
+                    elif cell["objects"] != [] and isinstance(cell["objects"][0], Door):
+                        door_state = cell["objects"][0].is_open
 
             if self.state["warning"]:
                 warning = "Warning: " + self.state["warning"]

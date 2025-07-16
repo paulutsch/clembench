@@ -40,7 +40,8 @@ class SudokuObject(Object):
 
     def __init__(self, position: Position, value: int):
         symbol = str(value)
-        pretty_symbol = str(value)
+        emoji_numbers = ["0️⃣", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣"]
+        pretty_symbol = emoji_numbers[value] if 0 <= value <= 9 else str(value)
         super().__init__(
             position, f"cell_{position[0]}_{position[1]}", symbol, pretty_symbol
         )
