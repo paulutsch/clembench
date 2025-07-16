@@ -38,20 +38,12 @@ class SudokuAction(Action):
 class SudokuObject(Object):
     """Represents a cell in the Sudoku grid."""
 
-    def __init__(self, position: Position, value: int, is_original: bool = False):
+    def __init__(self, position: Position, value: int):
         symbol = str(value)
         pretty_symbol = str(value)
         super().__init__(
             position, f"cell_{position[0]}_{position[1]}", symbol, pretty_symbol
         )
-        self.value = value
-        self.is_original = is_original
-
-    def can_interact_with(self, other: Object) -> bool:
-        return False
-
-    def interact_with(self, other: Object) -> None:
-        pass
 
 
 class SudokuEnvironment(GridEnvironment):
@@ -75,7 +67,6 @@ class SudokuEnvironment(GridEnvironment):
 
         self.observations: Dict[str, Observation] = {}
         self.action_spaces: Dict[str, ActionSpace] = {}
-        self.base_prompt: str = ""
 
         self._initialize_grid()
 
@@ -84,17 +75,17 @@ class SudokuEnvironment(GridEnvironment):
         for i in range(self.grid_size):
             for j in range(self.grid_size):
                 value = self.original_grid[i][j]
-                is_original = value != 0
-                object = SudokuObject((i, j), value, is_original)
+                object = SudokuObject((i, j), value)
                 self.add_object(object)
 
-    def reset(
-        self,
-        initial_observations: Dict[str, Observation],
-        initial_action_spaces: Dict[str, ActionSpace],
-    ):
-        super().reset(initial_observations, initial_action_spaces)
+    def reset(self):
+        super().reset()
+
         self._initialize_grid()
+        self.update_observations()
+
+        for player in self.players:
+            self.set_action_space(player, ["fill_cell"])
 
     def _get_board_from_grid(self) -> List[List[int]]:
         """Extract grid state."""
@@ -105,7 +96,7 @@ class SudokuEnvironment(GridEnvironment):
                 if objects:
                     object = objects[0]
                     if isinstance(object, SudokuObject):
-                        grid[i][j] = object.value
+                        grid[i][j] = int(object.symbol)
         return grid
 
     def _is_grid_valid(
@@ -187,7 +178,7 @@ class SudokuEnvironment(GridEnvironment):
         if objects:
             self.remove_object(objects[0])
 
-        new_cell = SudokuObject((row, col), value, False)
+        new_cell = SudokuObject((row, col), value)
         self.add_object(new_cell)
 
         board = self._get_board_from_grid()
@@ -205,14 +196,18 @@ class SudokuEnvironment(GridEnvironment):
     def update_observations(self) -> None:
         """Update the observation for all players."""
         for player in self.players:
-            rendered_state = self.render_state(player.name)
+            rendered_state = self.render_state()
 
             if self.state["warning"]:
                 warning = "Warning: " + self.state["warning"]
             else:
                 warning = ""
 
-            text_content = (f"{warning}\n" if warning else "") + "The board is:\n\n"
+            text_content = (
+                self.config.get("prompt", "") + "\n\n"
+                if self.state["moves"] == 0
+                else "" + (f"{warning}\n" if warning else "") + "The board is:\n\n"
+            )
 
             observation = self._create_observation(text_content, rendered_state)
 
@@ -220,8 +215,9 @@ class SudokuEnvironment(GridEnvironment):
 
             self.observations[player.name] = observation
 
-    def format_board(self, board: List[List[int]]) -> str:
-        """Format the Sudoku board with box separators using | and - characters."""
+    def _render_state_as_string(self, player_name: str | None = None) -> str:
+        """Render state as string."""
+        board = self._get_board_from_grid()
         board_size = self.grid_size
         box_size = int(self.grid_size / 3)
 
@@ -241,14 +237,10 @@ class SudokuEnvironment(GridEnvironment):
 
         return "\n".join(output)
 
-    def _render_state_as_string(self, player_name: str | None = None) -> str:
-        """Render state as string."""
-        return self.format_board(self._get_board_from_grid())
-
     def _render_state_as_image(self, player_name: str | None = None) -> bytes:
         """Render state as image (not implemented for Sudoku)."""
         return b""
 
     def _render_state_as_human_readable(self, player_name: str | None = None) -> str:
-        """Render state in human readable format."""
-        return self._render_state_as_string(player_name)
+        """Render state as human readable."""
+        return self._render_state_as_string()

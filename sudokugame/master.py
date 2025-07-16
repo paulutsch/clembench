@@ -57,22 +57,8 @@ class SudokuGame(EnvGameMaster):
         self.add_player(self.player)
         logger.info(f"[_on_setup] Added player: {self.player.name}")
 
-        self.game_environment.base_prompt = game_instance["prompt"]
-
-        grid = self.game_environment.format_board(
-            self.game_environment._get_board_from_grid()
-        )
-        player_observation: Observation = {
-            "role": "user",
-            "content": game_instance["prompt"] + "\n\n" + grid,
-        }
-        initial_observations: Dict[str, Observation] = {
-            self.player.name: player_observation,
-        }
-        initial_action_spaces: Dict[str, ActionSpace] = {
-            self.player.name: ["fill_cell"]
-        }
-        self.game_environment.reset(initial_observations, initial_action_spaces)
+        
+        self.game_environment.reset()
 
     def _player_response_in_expected_format(
         self, player: Player, utterance: str

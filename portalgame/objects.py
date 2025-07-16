@@ -1,6 +1,6 @@
 from typing import Tuple
 
-from clemcore.clemgame import Object, PlayerObject
+from clemcore.clemgame import Object
 
 
 class Wall(Object):
@@ -9,24 +9,12 @@ class Wall(Object):
     def __init__(self, position: Tuple[int, int]):
         super().__init__(position, "Wall", "wall", "⬛️")
 
-    def can_interact_with(self, other: Object) -> bool:
-        return False
-
-    def interact_with(self, other: Object) -> None:
-        pass
-
 
 class Portal(Object):
     """A portal that leads to transcendence."""
 
     def __init__(self, position: Tuple[int, int]):
         super().__init__(position, "Portal", "portal", "🌀")
-
-    def can_interact_with(self, other: Object) -> bool:
-        return isinstance(other, PlayerObject)
-
-    def interact_with(self, other: Object) -> None:
-        pass
 
 
 class Door(Object):
@@ -35,12 +23,6 @@ class Door(Object):
     def __init__(self, position: Tuple[int, int]):
         super().__init__(position, "Door", "door", "🚪")
         self.is_open = False
-
-    def can_interact_with(self, other: Object) -> bool:
-        return isinstance(other, PlayerObject)
-
-    def interact_with(self, other: Object) -> None:
-        pass
 
     def toggle_state(self) -> None:
         """Toggle the door's open/closed state."""
@@ -53,10 +35,3 @@ class Switch(Object):
     def __init__(self, position: Tuple[int, int]):
         super().__init__(position, "Switch", "switch", "🔘")
         self.activated = False
-
-    def can_interact_with(self, other: Object) -> bool:
-        return isinstance(other, PlayerObject)
-
-    def interact_with(self, other: Object) -> None:
-        if isinstance(other, PlayerObject):
-            self.activated = True
