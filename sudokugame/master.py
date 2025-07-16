@@ -1,9 +1,7 @@
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List
 
-import numpy as np
 from clemcore.backends import Model
 from clemcore.clemgame import (
-    Action,
     ActionSpace,
     EnvGameMaster,
     GameBenchmark,
@@ -15,12 +13,7 @@ from clemcore.clemgame import (
 from clemcore.clemgame.metrics import BENCH_SCORE
 from clemcore.utils.logger import format_json, setup_logger
 
-from sudokugame.game_environment import (
-    SudokuAction,
-    SudokuEnvironment,
-    SudokuObservation,
-    SudokuPlayer,
-)
+from sudokugame.game_environment import SudokuAction, SudokuEnvironment, SudokuPlayer
 
 logger = setup_logger(__name__)
 
@@ -54,11 +47,7 @@ class SudokuGame(EnvGameMaster):
 
         logger.debug(f"[_on_setup] Game instance: {game_instance}")
 
-        board_size = game_instance["board_size"]
-        difficulty = game_instance["difficulty"]
-        logger.info(f"[_on_setup] Board size: {board_size}, Difficulty: {difficulty}")
-
-        self.game_environment = SudokuEnvironment(board_size, difficulty, game_instance)
+        self.game_environment = SudokuEnvironment(game_instance)
         logger.info(f"[_on_setup] Game environment: {self.game_environment}")
         self.game_environment.config = game_instance
 
@@ -70,13 +59,12 @@ class SudokuGame(EnvGameMaster):
 
         self.game_environment.base_prompt = game_instance["prompt"]
 
-        board = self.game_environment.format_board(
-            np.array(self.game_environment.state["board"])
+        grid = self.game_environment.format_board(
+            self.game_environment._get_board_from_grid()
         )
-        player_observation: SudokuObservation = {
+        player_observation: Observation = {
             "role": "user",
-            "content": game_instance["prompt"] + "\n\n" + board,
-            "board": board,
+            "content": game_instance["prompt"] + "\n\n" + grid,
         }
         initial_observations: Dict[str, Observation] = {
             self.player.name: player_observation,
@@ -86,7 +74,9 @@ class SudokuGame(EnvGameMaster):
         }
         self.game_environment.reset(initial_observations, initial_action_spaces)
 
-    def _player_response_in_expected_format(self, player: Player, utterance: str) -> bool:
+    def _player_response_in_expected_format(
+        self, player: Player, utterance: str
+    ) -> bool:
         """
         Validate the player's response.
 
