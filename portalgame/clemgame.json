@@ -2,7 +2,7 @@
     "game_name": "portalgame",
     "description": "language models navigate a structured digital illusion, in pursuit of transcendence",
     "main_game": "portalgame",
-    "players": "two",
+    "players": 1,
     "image": "none",
     "languages": ["en"],
     "benchmark": []

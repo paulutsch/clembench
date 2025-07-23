@@ -168,7 +168,7 @@ class TicTacToeEnvironment(GridEnvironment):
 
         if np.all(board_np != "⬜️"):
             self.state["terminated"] = True
-            self.state["success"] = True
+            self.state["success"] = False
             return
 
     def update_observations(self) -> None:

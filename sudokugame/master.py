@@ -23,17 +23,14 @@ class SudokuGame(EnvGameMaster):
 
     def __init__(
         self,
-        game_name: str,
-        game_path: str,
+        game_spec: GameSpec,
         experiment: Dict,
         player_models: List[Model],
     ):
-        logger.info(
-            f"[_init] Initializing SudokuGame GameMaster with name={game_name}, path={game_path}"
-        )
+        logger.info(f"[_init] Initializing SudokuGame GameMaster with spec={game_spec}")
         logger.debug(f"[_init] Experiment parameters: {experiment}")
 
-        super().__init__(game_name, game_path, experiment, player_models)
+        super().__init__(game_spec, experiment, player_models)
         logger.info("[_init] SudokuGame initialization complete")
 
     def _on_setup(self, **game_instance):
@@ -57,7 +54,6 @@ class SudokuGame(EnvGameMaster):
         self.add_player(self.player)
         logger.info(f"[_on_setup] Added player: {self.player.name}")
 
-        
         self.game_environment.reset()
 
     def _player_response_in_expected_format(
@@ -118,16 +114,16 @@ class SudokuGame(EnvGameMaster):
     def compute_episode_score(self) -> float:
         """
         Compute the overall episode score.
-        In SudokuGame, this is the same as the response score.
 
         Returns:
             float: The episode score
         """
         logger.info("[_compute_episode_score] Computing episode score")
 
-        score = 1.0 if self.game_environment.state["success"] else 0.0
-        logger.info(f"[_compute_episode_score] Episode score: {score}")
-        return score
+        success = self.game_environment.state["success"]
+        not_aborted = not self.game_environment.state["aborted"]
+
+        return (not_aborted + success) / 2
 
 
 class SudokuGameScorer(GameScorer):
@@ -156,13 +152,8 @@ class SudokuGameScorer(GameScorer):
         episode_score = episode_interactions["episode_score"]
 
         self.log_episode_score("Success", success)
-        logger.info(f"Episode success: {success}")
-
         self.log_episode_score("Aborted", aborted)
-        logger.info(f"Episode aborted: {aborted}")
-
         self.log_episode_score("Episode Score", episode_score)
-        logger.info(f"Final episode score: {episode_score}")
 
         # bench score based on following instructions (not aborted) and winning (success)
         not_aborted = 1 if not aborted else 0
@@ -184,8 +175,7 @@ class SudokuGameBenchmark(GameBenchmark):
             f"Player models: {[model.__class__.__name__ for model in player_models]}"
         )
         return SudokuGame(
-            self.game_name,
-            self.game_path,
+            self.game_spec,
             experiment,
             player_models,
         )

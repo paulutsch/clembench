@@ -26,17 +26,16 @@ class TicTacToeGame(EnvGameMaster):
 
     def __init__(
         self,
-        game_name: str,
-        game_path: str,
+        game_spec: GameSpec,
         experiment: Dict,
         player_models: List[Model],
     ):
         logger.info(
-            f"[_init] Initializing TicTacToeGame GameMaster with name={game_name}, path={game_path}"
+            f"[_init] Initializing TicTacToeGame GameMaster with spec={game_spec}"
         )
         logger.debug(f"[_init] Experiment parameters: {experiment}")
 
-        super().__init__(game_name, game_path, experiment, player_models)
+        super().__init__(game_spec, experiment, player_models)
         logger.info("[_init] TicTacToeGame initialization complete")
 
     def _on_setup(self, **game_instance):
@@ -130,13 +129,10 @@ class TicTacToeGame(EnvGameMaster):
         """
         logger.info("[_compute_episode_score] Computing episode score")
 
-        score = 1.0 if self.game_environment.state["success"] else 0.0
-        logger.info(f"[_compute_episode_score] Episode score: {score}")
-        return score
+        success = self.game_environment.state["success"]
+        not_aborted = not self.game_environment.state["aborted"]
 
-    def _does_game_proceed(self) -> bool:
-        """Check if the game should continue."""
-        return not self.game_environment.state["terminated"]
+        return (not_aborted + success) / 2
 
 
 class TicTacToeGameScorer(GameScorer):
@@ -164,13 +160,8 @@ class TicTacToeGameScorer(GameScorer):
         episode_score = episode_interactions["episode_score"]
 
         self.log_episode_score("Success", success)
-        logger.info(f"Episode success: {success}")
-
         self.log_episode_score("Aborted", aborted)
-        logger.info(f"Episode aborted: {aborted}")
-
         self.log_episode_score("Episode Score", episode_score)
-        logger.info(f"Final episode score: {episode_score}")
 
         not_aborted = 1 if not aborted else 0
         bench_score = (not_aborted + success) / 2
@@ -191,8 +182,7 @@ class TicTacToeGameBenchmark(GameBenchmark):
             f"Player models: {[model.__class__.__name__ for model in player_models]}"
         )
         return TicTacToeGame(
-            self.game_name,
-            self.game_path,
+            self.game_spec,
             experiment,
             player_models,
         )

@@ -9,7 +9,7 @@
                     "render_as": "human-readable",
                     "width": 3,
                     "height": 3,
-                    "max_moves": 9
+                    "max_moves": 10
                 }
             ],
             "language": "en"

@@ -9,7 +9,7 @@
                     "width": 9,
                     "height": 9,
                     "render_as": "string",
-                    "max_moves": 5,
+                    "max_moves": 20,
                     "difficulty": 0.1
                 }
             ],

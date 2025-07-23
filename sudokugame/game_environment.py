@@ -134,14 +134,9 @@ class SudokuEnvironment(GridEnvironment):
         return True
 
     def _is_grid_solved(self, grid: List[List[int]]) -> bool:
-        if not all(0 not in row for row in grid):
-            return False
-
-        # Convert to numpy for easier array operations
-        grid_np = np.array(grid)
         for i in range(self.grid_size):
             for j in range(self.grid_size):
-                if not self._is_grid_valid(grid, i, j, grid_np[i][j]):
+                if grid[i][j] == 0:
                     return False
 
         return True
@@ -188,7 +183,7 @@ class SudokuEnvironment(GridEnvironment):
             self.state["aborted"] = False
         else:
             self.state["terminated"] = False
-            self.state["success"] = False
+            self.state["success"] = True
             self.state["aborted"] = False
 
         logger.info(f"[_update_state_through_action] Board updated, action: {action}")

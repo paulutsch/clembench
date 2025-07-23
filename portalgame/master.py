@@ -27,17 +27,13 @@ class PortalGame(EnvGameMaster):
 
     def __init__(
         self,
-        game_name: str,
-        game_path: str,
+        game_spec: GameSpec,
         experiment: Dict,
         player_models: List[Model],
     ):
-        logger.info(
-            f"[_init] Initializing PortalGame GameMaster with name={game_name}, path={game_path}"
-        )
+        logger.info(f"[_init] Initializing PortalGame GameMaster with spec={game_spec}")
         logger.debug(f"[_init] Experiment parameters: {experiment}")
-
-        super().__init__(game_name, game_path, experiment, player_models)
+        super().__init__(game_spec, experiment, player_models)
         logger.info("[_init] PortalGame initialization complete")
 
     def _on_setup(self, **game_instance):
@@ -139,9 +135,10 @@ class PortalGame(EnvGameMaster):
         """
         logger.info("[_compute_episode_score] Computing episode score")
 
-        score = 1.0 if self.game_environment.state["success"] else 0.0
-        logger.info(f"[_compute_episode_score] Episode score: {score}")
-        return score
+        success = self.game_environment.state["success"]
+        not_aborted = not self.game_environment.state["aborted"]
+
+        return (not_aborted + success) / 2
 
 
 class PortalGameScorer(GameScorer):
@@ -167,13 +164,8 @@ class PortalGameScorer(GameScorer):
         episode_score = episode_interactions["episode_score"]
 
         self.log_episode_score("Success", success)
-        logger.info(f"Episode success: {success}")
-
         self.log_episode_score("Aborted", aborted)
-        logger.info(f"Episode aborted: {aborted}")
-
         self.log_episode_score("Episode Score", episode_score)
-        logger.info(f"Final episode score: {episode_score}")
 
         # bench score based on following instructions (not aborted) and winning (success)
         not_aborted = 1 if not aborted else 0
@@ -191,7 +183,7 @@ class PortalGameBenchmark(GameBenchmark):
     def create_game_master(
         self, experiment: Dict, player_models: List[Model]
     ) -> EnvGameMaster:
-        return PortalGame(self.game_name, self.game_path, experiment, player_models)
+        return PortalGame(self.game_spec, experiment, player_models)
 
     def create_game_scorer(self, experiment: Dict, game_instance: Dict) -> GameScorer:
         return PortalGameScorer(self.game_name, experiment, game_instance)

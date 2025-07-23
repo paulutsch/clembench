@@ -2,7 +2,7 @@
     "game_name": "tictactoegame",
     "description": "TicTacToe game",
     "main_game": "tictactoegame",
-    "players": "two",
+    "players": 2,
     "image": "none",
     "languages": ["en"],
     "benchmark": []
