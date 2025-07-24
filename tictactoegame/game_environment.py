@@ -65,12 +65,10 @@ class TicTacToeEnvironment(GridEnvironment):
                 self.add_object(cell)
 
     def reset(
-        self,
-        initial_observations: Optional[Dict[str, Observation]] = None,
-        initial_action_spaces: Optional[Dict[str, ActionSpace]] = None,
+        self
     ) -> None:
         """Reset the game environment."""
-        super().reset(initial_observations, initial_action_spaces)  # type: ignore
+        super().reset()
         self.current_player = 1
         self._initialize_grid()
 

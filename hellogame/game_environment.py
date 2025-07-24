@@ -47,11 +47,7 @@ class HelloGameEnvironment(GameEnvironment):
     - Game success/failure status
     """
 
-    def reset(
-        self,
-        initial_observations: Dict[str, Observation],
-        initial_action_spaces: Dict[str, ActionSpace],
-    ):
+    def reset(self):
         """
         Reset the environment to an initial state.
 
@@ -65,8 +61,6 @@ class HelloGameEnvironment(GameEnvironment):
                 - Information dictionary
         """
         logger.info("[reset] Resetting environment")
-        self.observations = initial_observations
-        self.action_spaces = initial_action_spaces
 
         target_name = self.config["target_name"]
 
@@ -84,6 +78,20 @@ class HelloGameEnvironment(GameEnvironment):
         logger.debug(f"[reset] Reset state — new state: \n{format_json(self.state)}")
 
         logger.info("[reset] Environment reset complete")
+
+        greeter_observation: Observation = {
+            "role": "user",
+            "content": self.config["prompt"],
+        }
+        initial_observations: Dict[str, Observation] = {
+            self.players[0].name: greeter_observation
+        }
+        initial_action_spaces: Dict[str, ActionSpace] = {
+            self.players[0].name: ["verbal_response"]
+        }
+
+        self.observations = initial_observations
+        self.action_spaces = initial_action_spaces
 
     def update_observation(self, player: Player):
         """

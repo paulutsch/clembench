@@ -39,16 +39,10 @@ class HelloGame(EnvGameMaster):
         experiment: Dict,
         player_models: List[Model],
     ):
-        logger.info(
-            f"[_init] Initializing HelloGame GameMaster with spec={game_spec}"
-        )
+        logger.info(f"[_init] Initializing HelloGame GameMaster with spec={game_spec}")
         logger.debug(f"[_init] Experiment parameters: {experiment}")
 
-        game_environment = HelloGameEnvironment()
-
-        super().__init__(
-            game_spec, experiment, player_models, game_environment
-        )
+        super().__init__(game_spec, experiment, player_models)
         logger.info("[_init] HelloGame initialization complete")
 
     def _on_setup(self, **game_instance):
@@ -61,7 +55,7 @@ class HelloGame(EnvGameMaster):
         logger.info("[_on_setup] Setting up HelloGame")
 
         logger.debug(f"[_on_setup] Game instance: {game_instance}")
-        self.game_environment.config = game_instance
+        self.game_environment = HelloGameEnvironment(config=game_instance)
 
         self.greeter = HelloGamePlayer(self.player_models[0])
         logger.debug(f"[_on_setup] Created players: greeter={self.greeter}")
@@ -69,17 +63,7 @@ class HelloGame(EnvGameMaster):
         self.add_player(self.greeter)
         logger.info(f"[_on_setup] Added players: greeter={self.greeter.name}")
 
-        greeter_observation: Observation = {
-            "role": "user",
-            "content": game_instance["prompt"],
-        }
-        initial_observations: Dict[str, Observation] = {
-            self.greeter.name: greeter_observation
-        }
-        initial_action_spaces: Dict[str, ActionSpace] = {
-            self.greeter.name: ["verbal_response"]
-        }
-        self.game_environment.reset(initial_observations, initial_action_spaces)
+        self.game_environment.reset()
 
     def _validate_player_response(self, player: Player, utterance: str) -> bool:
         """

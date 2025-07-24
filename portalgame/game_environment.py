@@ -52,6 +52,7 @@ class PortalGameEnvironment(GridEnvironment):
 
     def reset(self) -> None:
         """Reset the game environment."""
+        super().reset()
         self.state = PortalGameState(
             grid=[
                 [GridCell(objects=[], position=(i, j)) for j in range(self.width)]
