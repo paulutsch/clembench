@@ -2,9 +2,11 @@ from typing import Dict, List
 import numpy as np
 import logging
 from clemcore.backends import Model
-from clemcore.clemgame import GameMaster, GameBenchmark, Player, DialogueGameMaster, GameScorer, GameSpec, GameRecorder
+from clemcore.clemgame import GameMaster, GameBenchmark, Player, GameSpec
+from clemcore.clemgame.legacy.scorer import GameScorer
+from clemcore.clemgame.legacy.master import DialogueGameMaster
 from clemcore.clemgame.metrics import METRIC_ABORTED, METRIC_SUCCESS, METRIC_LOSE, METRIC_REQUEST_COUNT, \
-    METRIC_REQUEST_COUNT_VIOLATED, METRIC_REQUEST_COUNT_PARSED, METRIC_REQUEST_SUCCESS, BENCH_SCORE
+    METRIC_REQUEST_COUNT_VIOLATED, METRIC_REQUEST_COUNT_PARSED, METRIC_REQUEST_SUCCESS_RATIO, BENCH_SCORE
 from clemcore.utils import file_utils, string_utils
 import math
 import re
@@ -37,8 +39,8 @@ class GuessWhat(DialogueGameMaster):
     question or makes a guess, and player B (the Answerer) responds with "yes" or "no".
     """
 
-    def __init__(self, game_name: str, game_path: str, experiment: Dict, player_models: List[Model]):
-        super().__init__(game_name, game_path, experiment, player_models)
+    def __init__(self, game_spec: GameSpec, experiment: Dict, player_models: List[Model]):
+        super().__init__(game_spec, experiment, player_models)
 
         self.max_turns: int = experiment["max_turns"]
         self.question_tag = experiment["question_tag"]
@@ -56,9 +58,9 @@ class GuessWhat(DialogueGameMaster):
         self.correct_guess = False
 
     def check_question(self, question: str, candidate_list: List[str]) -> List[Dict]:
-
         """
-        Checks the questions content to see if they follow the rules of the game. Returns a list of content errors found.
+        Checks the questions content to see if they follow the rules of the game.
+        Returns a list of content errors found.
         """
         errors = []
 
@@ -247,8 +249,6 @@ class GuessWhatScorer(GameScorer):
         guesser_won = False
         max_turns = self.experiment["max_turns"]
 
-        speed_score = 0
-
         # Set lower_bound_turns based on the level to calculate speed
         game_level = self.experiment["name"]
 
@@ -323,9 +323,9 @@ class GuessWhatScorer(GameScorer):
 
         # Compute the request success ratio
         if request_count != 0:
-            self.log_episode_score(METRIC_REQUEST_SUCCESS, parsed_request_count / request_count)
+            self.log_episode_score(METRIC_REQUEST_SUCCESS_RATIO, parsed_request_count / request_count)
         else:
-            self.log_episode_score(METRIC_REQUEST_SUCCESS, 0)
+            self.log_episode_score(METRIC_REQUEST_SUCCESS_RATIO, 0)
 
         # If any violation occurred, mark the game as aborted and don't compute BENCH_SCORE
         if invalid_format_in_turn or invalid_content_in_turn:
@@ -371,7 +371,7 @@ class GuessWhatGameBenchmark(GameBenchmark):
         return "Guess What? game between two agents where one asks questions to guess the target word from list of candidates and the other answers with 'yes' or 'no'."
 
     def create_game_master(self, experiment: Dict, player_models: List[Model]) -> GameMaster:
-        return GuessWhat(self.game_name, self.game_path, experiment, player_models)
+        return GuessWhat(self.game_spec, experiment, player_models)
 
     def create_game_scorer(self, experiment: Dict, game_instance: Dict) -> GameScorer:
         return GuessWhatScorer(self.game_name, experiment, game_instance)

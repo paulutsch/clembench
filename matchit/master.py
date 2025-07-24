@@ -1,4 +1,6 @@
-from clemcore.clemgame import Player, GameMaster, GameBenchmark, DialogueGameMaster, GameScorer, GameSpec
+from clemcore.clemgame import Player, GameMaster, GameBenchmark, GameSpec
+from clemcore.clemgame.legacy.master import DialogueGameMaster
+from clemcore.clemgame.legacy.scorer import GameScorer
 from clemcore.clemgame import metrics as ms
 from clemcore.backends import Model
 from clemcore.utils import file_utils
@@ -41,8 +43,8 @@ class MatchItPlayer(Player):
 
 class MatchIt(DialogueGameMaster):
 
-    def __init__(self, game_name: str, game_path: str, experiment: Dict, player_models: List[Model]):
-        super().__init__(game_name, game_path, experiment, player_models)
+    def __init__(self, game_spec: GameSpec, experiment: Dict, player_models: List[Model]):
+        super().__init__(game_spec, experiment, player_models)
 
         self.experiment: str = experiment["name"]
         self.flags: dict[str, str] = experiment["flags"]
@@ -194,14 +196,12 @@ class MatchIt(DialogueGameMaster):
             other_player = self.player_a if player == self.player_b else self.player_b
 
             if player.answer != "" and player.question != "":
-                # self.log_to_self("note", "a+q -> A:" + player.answer + " ,Q:" + player.question + " ,D:" + player.decision )
                 self.set_context_for(other_player, player.answer + "\n" + player.question + self.a_request)
                 player.description = ""
                 player.question = ""
                 player.answer = ""
                 player.decision = ""
             elif player.decision != "" and player.question != "":
-                # self.log_to_self("note", "a+d -> A:" + player.answer + " ,Q:" + player.question + " ,D:" + player.decision )
                 self.set_context_for(other_player, player.decision + "\n" + player.question)
                 player.description = ""
                 player.question = ""
@@ -325,7 +325,7 @@ class MatchItBenchmark(GameBenchmark):
         super().__init__(game_spec)
 
     def create_game_master(self, experiment: Dict, player_models: List[Model]) -> GameMaster:
-        return MatchIt(self.game_name, self.game_path, experiment, player_models)
+        return MatchIt(self.game_spec, experiment, player_models)
 
     def create_game_scorer(self, experiment: Dict, game_instance: Dict) -> GameScorer:
         return MatchItScorer(self.game_name, experiment, game_instance)

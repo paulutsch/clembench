@@ -13,7 +13,9 @@ import networkx as nx
 
 import mm_mapworld_utils as utils
 from clemcore.backends import Model, CustomResponseModel
-from clemcore.clemgame import GameMaster, GameBenchmark, DialogueGameMaster, GameScorer, GameSpec
+from clemcore.clemgame import GameMaster, GameBenchmark, GameSpec
+from clemcore.clemgame.legacy.master import DialogueGameMaster
+from clemcore.clemgame.legacy.scorer import GameScorer
 from clemcore.clemgame import Player
 from clemcore.utils import file_utils
 from clemcore.clemgame.metrics import METRIC_ABORTED, METRIC_SUCCESS, METRIC_LOSE, BENCH_SCORE
@@ -115,8 +117,8 @@ class PathDescriber(Player):
 class MmMapWorldGraphs(DialogueGameMaster):
     """Implement mechanisms for playing MM-MapWorld."""
 
-    def __init__(self, game_name: str, game_path: str, experiment: Dict, player_models: List[Model]):
-        super().__init__(game_name, game_path, experiment, player_models)
+    def __init__(self, game_spec: GameSpec, experiment: Dict, player_models: List[Model]):
+        super().__init__(game_spec, experiment, player_models)
 
         self.aborted: bool = False
         self.stop: bool = False
@@ -656,23 +658,21 @@ class MM_MapWorldGraphsScorer(GameScorer):
             else:
                 self.log_episode_score(BENCH_SCORE, (2 * exp * eff) / (eff + exp))
 
-    def store_scores(self, results_root: str, dialogue_pair: str, game_record_dir: str):
-        self.store_results_file(self.scores, "scores.json",
-                                dialogue_pair=dialogue_pair,
-                                sub_dir=game_record_dir,
-                                results_dir=results_root)
+    def store_scores(self, interactions_dir: str):
+        super().store_scores(interactions_dir)
+
         # plotting & animation
         if not os.path.exists("tmp"):
             os.makedirs("tmp")
         path_plot = self.plot_path(self.path)
-        path_plot.savefig(os.path.join(results_root, dialogue_pair, self.name, game_record_dir, "path.png"))
+        path_plot.savefig(os.path.join(interactions_dir, "path.png"))
         plt.close()
         if not os.path.exists("tmp/step_plots"):
             os.makedirs("tmp/step_plots")
         images = []
         gen_images = []
-        gen_dir = os.path.join(results_root, dialogue_pair, self.name, game_record_dir, "generated_graphs")
-        tmp_gen_dir = os.path.join(results_root, dialogue_pair, self.name, game_record_dir, "generated_graphs", "tmp")
+        gen_dir = os.path.join(interactions_dir, "generated_graphs")
+        tmp_gen_dir = os.path.join(interactions_dir, "generated_graphs", "tmp")
         if not os.path.exists(tmp_gen_dir):
             os.makedirs(tmp_gen_dir)
         for i in range(len(self.gens)):
@@ -688,8 +688,7 @@ class MM_MapWorldGraphsScorer(GameScorer):
             step_plot.savefig(f"tmp/step_plots/{i}.png")
             images.append(imageio.imread(f"tmp/step_plots/{i}.png"))
             plt.close()
-        imageio.mimsave(os.path.join(results_root, dialogue_pair, self.name, game_record_dir, "animation.gif"), images,
-                        fps=1, loop=True)
+        imageio.mimsave(os.path.join(interactions_dir, "animation.gif"), images, fps=1, loop=True)
         try:
             shutil.rmtree("tmp")
             shutil.rmtree(tmp_gen_dir)
@@ -708,7 +707,7 @@ class MmMapWorldGraphsBenchmark(GameBenchmark):
                            experiment: Dict,
                            player_models: List[Model]
                            ) -> GameMaster:
-        return MmMapWorldGraphs(self.game_name, self.game_path, experiment, player_models)
+        return MmMapWorldGraphs(self.game_spec, experiment, player_models)
 
     def create_game_scorer(self, experiment: Dict, game_instance: Dict) -> GameScorer:
         return MM_MapWorldGraphsScorer(self.game_name, experiment, game_instance)

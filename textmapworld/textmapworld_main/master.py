@@ -1,9 +1,11 @@
 from clemcore.backends import Model, CustomResponseModel
-from clemcore.clemgame import GameMaster, GameBenchmark, Player, DialogueGameMaster, GameScorer, GameSpec
+from clemcore.clemgame import GameMaster, GameBenchmark, Player, GameSpec
+from clemcore.clemgame.legacy.scorer import GameScorer
+from clemcore.clemgame.legacy.master import DialogueGameMaster
 from clemcore.clemgame.metrics import METRIC_ABORTED, METRIC_SUCCESS, METRIC_LOSE, BENCH_SCORE
 from clemcore.utils import file_utils, string_utils
 
-from typing import Dict, Tuple, List
+from typing import Dict, List
 import json
 import numpy as np
 import re
@@ -124,8 +126,8 @@ class PathDescriber(Player):
 
 class Textmapworld(DialogueGameMaster):
 
-    def __init__(self, game_name: str, game_path: str, experiment: Dict, player_models: List[Model]):
-        super().__init__(game_name, game_path, experiment, player_models)
+    def __init__(self, game_spec: GameSpec, experiment: Dict, player_models: List[Model]):
+        super().__init__(game_spec, experiment, player_models)
         self.steps_made = 0
         self.max_turns = 20
         self.game_error = None
@@ -409,7 +411,7 @@ class GraphGameScorer(GameScorer):
 class GraphGameBenchmark(GameBenchmark):
 
     def create_game_master(self, experiment: Dict, player_models: List[Model]) -> GameMaster:
-        return Textmapworld(self.game_name, self.game_path, experiment, player_models)
+        return Textmapworld(self.game_spec, experiment, player_models)
 
     def create_game_scorer(self, experiment: Dict, game_instance: Dict) -> GameScorer:
         return GraphGameScorer(self.game_name, experiment, game_instance)

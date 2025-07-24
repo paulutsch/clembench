@@ -35,24 +35,22 @@ class HelloGame(EnvGameMaster):
 
     def __init__(
         self,
-        game_name: str,
-        game_path: str,
+        game_spec: GameSpec,
         experiment: Dict,
         player_models: List[Model],
     ):
         logger.info(
-            f"[_init] Initializing HelloGame GameMaster with name={game_name}, path={game_path}"
+            f"[_init] Initializing HelloGame GameMaster with spec={game_spec}"
         )
         logger.debug(f"[_init] Experiment parameters: {experiment}")
 
         game_environment = HelloGameEnvironment()
 
         super().__init__(
-            game_name, game_path, experiment, player_models, game_environment
+            game_spec, experiment, player_models, game_environment
         )
         logger.info("[_init] HelloGame initialization complete")
 
-    # TODO: can _on_setup be generalized in the parent class? should we encapsulate adding players/config/observations/actions here? what's most intuitive for the developer?
     def _on_setup(self, **game_instance):
         """
         Called during game setup. Configure game parameters and initialize players.
@@ -197,7 +195,7 @@ class HelloGameBenchmark(GameBenchmark):
         logger.debug(
             f"Player models: {[model.__class__.__name__ for model in player_models]}"
         )
-        return HelloGame(self.game_name, self.game_path, experiment, player_models)
+        return HelloGame(self.game_spec, experiment, player_models)
 
     def create_game_scorer(self, experiment: Dict, game_instance: Dict) -> GameScorer:
         """

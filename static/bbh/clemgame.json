@@ -1,0 +1,10 @@
+{
+  "game_name": "bbh",
+  "description": "A selection of few-shot Q/A experiments from the Big Bench Hard (BBH) benchmark",
+  "main_game": "bbh",
+  "players": 1,
+  "image": "none",
+  "languages": ["en"],
+  "benchmark": [],
+  "roles": ["Answerer"]
+}

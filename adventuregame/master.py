@@ -6,7 +6,9 @@ from clemcore import backends
 from clemcore.backends import Model
 from clemcore.utils import file_utils
 import clemcore.clemgame.metrics as metrics
-from clemcore.clemgame import GameSpec, GameMaster, GameBenchmark, GameScorer, DialogueGameMaster, Player
+from clemcore.clemgame import GameSpec, GameMaster, GameBenchmark, Player
+from clemcore.clemgame.legacy.scorer import GameScorer
+from clemcore.clemgame.legacy.master import DialogueGameMaster
 
 import logging
 
@@ -33,9 +35,9 @@ class AdventureGameMaster(DialogueGameMaster):
     Handles prompted format adherence checks and creates episode records.
     """
 
-    def __init__(self, game_name: str, game_path: str, experiment: Dict, player_models: List[Model]):
-        super().__init__(game_name, game_path, experiment, player_models)
-        self.game_path = game_path
+    def __init__(self, game_spec: GameSpec, experiment: Dict, player_models: List[Model]):
+        super().__init__(game_spec, experiment, player_models)
+        self.game_path = game_spec.game_path
         self.success = True
         self.invalid_format: str = ""  # to track responses with invalid format
         self.finished: bool = False  # game finished successfully
@@ -227,7 +229,6 @@ class AdventureGameMaster(DialogueGameMaster):
             if len(self.plan_history) >= 2:
                 prior_plan: list = self.plan_history[-2]
                 first_prior_plan_command: str = prior_plan[0]
-                plan_followed: int = 0
                 # check if this turn's action matches the next action planned in the turn before:
                 if first_prior_plan_command == if_input:
                     plan_followed = 1
@@ -424,7 +425,7 @@ class AdventureGameScorer(GameScorer):
         self.log_episode_score(metrics.METRIC_REQUEST_COUNT_PARSED, parsed_request_count)
         request_count = sum([turn["request_count"] for turn in turn_scores])
         self.log_episode_score(metrics.METRIC_REQUEST_COUNT, request_count)
-        self.log_episode_score(metrics.METRIC_REQUEST_SUCCESS, parsed_request_count / request_count)
+        self.log_episode_score(metrics.METRIC_REQUEST_SUCCESS_RATIO, parsed_request_count / request_count)
 
         # sum up and record episode-level action hallucination values:
         hallucination_count = sum(turn_hallucinations)
@@ -533,7 +534,7 @@ class AdventureGameBenchmark(GameBenchmark):
         return "Interactive Fiction clemgame"
 
     def create_game_master(self, experiment: Dict, player_models: List[Model]) -> GameMaster:
-        return AdventureGameMaster(self.game_name, self.game_path, experiment, player_models)
+        return AdventureGameMaster(self.game_spec, experiment, player_models)
 
     def create_game_scorer(self, experiment: Dict, game_instance: Dict) -> GameScorer:
         return AdventureGameScorer(self.game_name, experiment, game_instance)

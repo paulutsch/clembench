@@ -1,13 +1,15 @@
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Union
 from string import Template
-import random, copy
+import random
+import copy
 import logging
-import os
 
 from clemcore import backends
-from clemcore.clemgame import GameScorer, GameBenchmark, Player, DialogueGameMaster, GameSpec
+from clemcore.clemgame import GameBenchmark, GameSpec
 from clemcore.clemgame.metrics import METRIC_ABORTED, METRIC_LOSE, METRIC_REQUEST_COUNT, \
     METRIC_REQUEST_COUNT_VIOLATED, METRIC_REQUEST_COUNT_PARSED
+from clemcore.clemgame.legacy.scorer import GameScorer
+from clemcore.clemgame.legacy.master import DialogueGameMaster
 
 from constants import *
 from validation_errors import *
@@ -24,8 +26,8 @@ class CodenamesGame(DialogueGameMaster):
     which player B has to guess from the given clue.
     """
 
-    def __init__(self, game_name: str, game_path: str, experiment: Dict, player_models: List[backends.Model]):
-        super().__init__(game_name, game_path, experiment, player_models)
+    def __init__(self, game_spec: GameSpec, experiment: Dict, player_models: List[backends.Model]):
+        super().__init__(game_spec, experiment, player_models)
         self.experiment = experiment
         self.opponent_difficulty: bool = experiment[OPPONENT_DIFFICULTY]
 
@@ -56,8 +58,7 @@ class CodenamesGame(DialogueGameMaster):
 
     def _get_cluegiver_prompt(self, initial=False) -> str:
         folder = "initial_prompts" if initial else "intermittent_prompts"
-        path = f"{GAME_PATH}/resources/{folder}/prompt_cluegiver"
-        prompt_cluegiver = self.load_template(path)
+        prompt_cluegiver = self.load_template(f"resources/{folder}/prompt_cluegiver")
 
         team_words = ", ".join(self.board.get_hidden_words(TEAM))
         opponent_words = ", ".join(self.board.get_hidden_words(OPPONENT))
@@ -77,8 +78,7 @@ class CodenamesGame(DialogueGameMaster):
         return self._get_guesser_prompt("intermittent_prompts")
 
     def _get_guesser_prompt(self, folder) -> str:
-        path = f"{GAME_PATH}/resources/{folder}/prompt_guesser"
-        prompt_guesser = self.load_template(path)
+        prompt_guesser = self.load_template(f"resources/{folder}/prompt_guesser")
 
         board = ", ".join(self.board.get_all_hidden_words())
         instance_prompt_guesser = Template(prompt_guesser).substitute(board=board,
@@ -106,7 +106,8 @@ class CodenamesGame(DialogueGameMaster):
             self.aborted = True
             continue_game = False
 
-        # for the base version, a check is needed whether all team words from one team are revealed or the assassin is revealed
+        # for the base version, a check is needed whether all team words
+        # from one team are revealed or the assassin is revealed
         if self.board.has_team_won():
             self.lost = False
             self.assassin_won = False
@@ -196,7 +197,7 @@ class CodenamesGame(DialogueGameMaster):
                 self.set_context_for(self.guesser, self._get_guesser_initial_prompt())
             else:
                 context = self.get_context_for(self.guesser)
-                context["content"] += (f"\n{self._get_guesser_intermittent_prompt()}")
+                context["content"] += f"\n{self._get_guesser_intermittent_prompt()}"
 
         else:
             evaluated_guesses = []
@@ -207,7 +208,8 @@ class CodenamesGame(DialogueGameMaster):
                     continue
                 evaluated_guesses.append((guess, assignment))
 
-                # TODO: add player messages here, whether word was revealed and correct, or incorrect and all other guesses were ignored
+                # TODO: add player messages here, whether word was revealed and correct,
+                # or incorrect and all other guesses were ignored
                 self.log_to_self(Turn_logs.TEAM_REVEALED, {"word": guess, "assignment": assignment})
                 if self._was_target(guess):
                     self.log_to_self(Turn_logs.TARGET_REVEALED, {"word": guess, "assignment": assignment})
@@ -218,7 +220,8 @@ class CodenamesGame(DialogueGameMaster):
             guess_feedback = ""
             if evaluated_guesses[-1][1] == TEAM:
                 if len(evaluated_guesses) >= 2:
-                    guess_feedback = f"The words {', '.join([guess for guess, assignment in evaluated_guesses])} were guessed correctly. "
+                    guess_feedback = (f"The words {', '.join([guess for guess, assignment in evaluated_guesses])} "
+                                      f"were guessed correctly. ")
                 else:
                     guess_feedback = f"The word {evaluated_guesses[0][0]} was guessed correctly. "
             else:
@@ -226,16 +229,17 @@ class CodenamesGame(DialogueGameMaster):
                 incorrect_guess = evaluated_guesses[-1]
                 if len(correct_guesses) >= 2:
                     guess_feedback += (
-                        f"The words {', '.join([guess for guess, assignment in correct_guesses])} were guessed correctly. ")
+                        f"The words {', '.join([guess for guess, assignment in correct_guesses])} "
+                        f"were guessed correctly. ")
                 elif len(correct_guesses) == 1:
-                    guess_feedback += (f"The word {correct_guesses[0][0]} was guessed correctly. ")
-                guess_feedback += (f"The word {incorrect_guess[0]} was guessed but is an {incorrect_guess[1]} word. ")
+                    guess_feedback += f"The word {correct_guesses[0][0]} was guessed correctly. "
+                guess_feedback += f"The word {incorrect_guess[0]} was guessed but is an {incorrect_guess[1]} word. "
 
             cluegiver_guess_feedback = copy.copy(guess_feedback)
-            cluegiver_guess_feedback += ("Your teammate's turn ended there.")
+            cluegiver_guess_feedback += "Your teammate's turn ended there."
 
             guesser_guess_feedback = copy.copy(guess_feedback)
-            guesser_guess_feedback += ("Your turn ended there.")
+            guesser_guess_feedback += "Your turn ended there."
 
             # add guess feedback to guesser history
             self.set_context_for(self.guesser, guesser_guess_feedback)
@@ -278,7 +282,7 @@ class CodenamesGameBenchmark(GameBenchmark):
         random.seed(SEED)
 
     def create_game_master(self, experiment: Dict, player_models: List[backends.Model]) -> DialogueGameMaster:
-        return CodenamesGame(self.game_name, self.game_path, experiment, player_models)
+        return CodenamesGame(self.game_spec, experiment, player_models)
 
     def create_game_scorer(self, experiment_config, game_instance) -> GameScorer:
         return CodenamesScorer(self.game_name, experiment_config, game_instance)
