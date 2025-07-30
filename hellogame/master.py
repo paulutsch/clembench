@@ -10,7 +10,7 @@ from clemcore.clemgame import (
     Observation,
     Player,
 )
-from clemcore.clemgame.metrics import BENCH_SCORE
+from clemcore.clemgame.metrics import BENCH_SCORE, METRIC_ABORTED, METRIC_SUCCESS
 from clemcore.utils.logger import format_json, setup_logger
 
 from hellogame.game_environment import HelloGameAction, HelloGameEnvironment
@@ -87,16 +87,11 @@ class HelloGame(EnvGameMaster):
         )
         return True
 
-    def compute_response_score(self, response: str, context: Dict):
+    def compute_turn_score(self):
         """
         Compute a score for the player's response based on the environment state.
         """
-        logger.debug(
-            f"[_compute_response_score] Computing response score for response: {response}"
-        )
-
         score = 1.0 if self.game_environment.state["success"] else 0.0
-        logger.debug(f"[_compute_response_score] Response score: {score}")
         return score
 
     def compute_episode_score(self):
@@ -122,48 +117,28 @@ class HelloGame(EnvGameMaster):
 
 
 class HelloGameScorer(GameScorer):
-    """
-    Scorer for the Hello Game.
-    Computes scores based on the game environment state.
-    """
+    """Scorer for the Hello game."""
 
     def __init__(self, game_name: str, experiment: Dict, game_instance: Dict):
         super().__init__(game_name, experiment, game_instance)
         self.target_name = game_instance["target_name"]
         logger.debug(f"HelloGameScorer initialized for target: {self.target_name}")
 
-    def compute_scores(self, episode_interactions: Dict) -> None:
-        """
-        Compute scores for the episode based on the interactions.
-        The Hello Game is scored based on whether the greeting was successful.
+    def compute_episode_scores(self, interactions: Dict) -> None:
+        """Compute episode-level scores for the Hello game.
 
         Args:
-            episode_interactions: Dictionary containing the episode interactions
+            interactions: Dict containing the logged episode's interactions.
         """
-        logger.debug(
-            f"Computing scores for episode interactions: \n{format_json(episode_interactions)}"
-        )
+        aborted = interactions.get(METRIC_ABORTED, False)
+        success = interactions.get(METRIC_SUCCESS, False)
 
-        success = episode_interactions["success"]
-        aborted = episode_interactions["aborted"]
-        missing_words = episode_interactions["missing_words"]
-        episode_score = episode_interactions["episode_score"]
+        if aborted:
+            bench_score = 0.0
+        else:
+            bench_score = 100.0 if success else 0.0
 
-        self.log_episode_score("Success", 1 if success else 0)
-        logger.debug(f"Episode success: {success}")
-
-        self.log_episode_score("Aborted", 1 if aborted else 0)
-        logger.debug(f"Episode aborted: {aborted}")
-
-        if missing_words:
-            missing_words_str = ", ".join(missing_words)
-            self.log_episode_score("Missing Words", missing_words_str)
-            logger.debug(f"Missing words: {missing_words_str}")
-
-        self.log_episode_score("Episode Score", episode_score)
-        logger.debug(f"Final episode score: {episode_score}")
-
-        self.log_episode_score(BENCH_SCORE, 100.0 if success else 0.0)
+        self.log_episode_score(BENCH_SCORE, bench_score)
 
 
 class HelloGameBenchmark(GameBenchmark):

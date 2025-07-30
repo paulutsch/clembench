@@ -9,7 +9,7 @@ from clemcore.clemgame import (
     GameSpec,
     Observation,
 )
-from clemcore.clemgame.metrics import BENCH_SCORE
+from clemcore.clemgame.metrics import BENCH_SCORE, METRIC_ABORTED, METRIC_SUCCESS
 from clemcore.utils.logger import format_json, setup_logger
 
 from tictactoegame.game_environment import (
@@ -101,7 +101,7 @@ class TicTacToeGame(EnvGameMaster):
         }
         return action
 
-    def compute_response_score(self, response: str, context: Dict) -> float:
+    def compute_turn_score(self) -> float:
         """
         Compute a score for the player's response based on the environment state.
 
@@ -112,12 +112,7 @@ class TicTacToeGame(EnvGameMaster):
         Returns:
             float: The score for the response
         """
-        logger.debug(
-            f"[_compute_response_score] Computing response score for response: {response}"
-        )
-
         score = 1.0 if self.game_environment.state["success"] else 0.0
-        logger.debug(f"[_compute_response_score] Response score: {score}")
         return score
 
     def compute_episode_score(self) -> float:
@@ -136,37 +131,26 @@ class TicTacToeGame(EnvGameMaster):
 
 
 class TicTacToeGameScorer(GameScorer):
-    """
-    Scorer for the TicTacToe Game.
-    Computes scores based on the game environment state.
-    """
+    """Scorer for the TicTacToe game."""
 
     def __init__(self, game_name: str, experiment: Dict, game_instance: Dict):
         super().__init__(game_name, experiment, game_instance)
 
-    def compute_scores(self, episode_interactions: Dict) -> None:
-        """
-        Compute scores for the episode based on the interactions.
+    def compute_episode_scores(self, interactions: Dict) -> None:
+        """Compute episode-level scores for the TicTacToe game.
 
         Args:
-            episode_interactions: Dictionary containing the episode interactions
+            interactions: Dict containing the logged episode's interactions.
         """
-        logger.debug(
-            f"Computing scores for episode interactions: \n{format_json(episode_interactions)}"
-        )
+        aborted = interactions.get(METRIC_ABORTED, False)
+        success = interactions.get(METRIC_SUCCESS, False)
 
-        success = 1 if episode_interactions["success"] else 0
-        aborted = 1 if episode_interactions["aborted"] else 0
-        episode_score = episode_interactions["episode_score"]
+        if aborted:
+            bench_score = 0.0
+        else:
+            bench_score = 100.0 if success else 0.0
 
-        self.log_episode_score("Success", success)
-        self.log_episode_score("Aborted", aborted)
-        self.log_episode_score("Episode Score", episode_score)
-
-        not_aborted = 1 if not aborted else 0
-        bench_score = (not_aborted + success) / 2
         self.log_episode_score(BENCH_SCORE, bench_score)
-        logger.info(f"Final bench score: {bench_score}")
 
 
 class TicTacToeGameBenchmark(GameBenchmark):

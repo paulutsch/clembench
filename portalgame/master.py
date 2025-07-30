@@ -3,11 +3,7 @@ from typing import Dict, List
 
 from clemcore.backends import Model
 from clemcore.clemgame import EnvGameMaster, GameBenchmark, GameScorer, GameSpec, Player
-from clemcore.clemgame.metrics import (
-    BENCH_SCORE,
-    METRIC_ABORTED,
-    METRIC_SUCCESS,
-)
+from clemcore.clemgame.metrics import BENCH_SCORE, METRIC_ABORTED, METRIC_SUCCESS
 from clemcore.utils.logger import setup_logger
 
 from portalgame.game_environment import PortalAction, PortalGameEnvironment
@@ -111,7 +107,7 @@ class PortalGame(EnvGameMaster):
         }
         return action
 
-    def compute_turn_score(self, response: str, context: Dict) -> float:
+    def compute_turn_score(self) -> float:
         """
         Compute a score for the player's response based on the environment state.
 
@@ -122,12 +118,7 @@ class PortalGame(EnvGameMaster):
         Returns:
             float: The score for the response
         """
-        logger.debug(
-            f"[_compute_turn_score] Computing turn score for response: {response}"
-        )
-
         score = 1.0 if self.game_environment.state["success"] else 0.0
-        logger.debug(f"[_compute_turn_score] Turn score: {score}")
         return score
 
     def compute_episode_score(self) -> float:
