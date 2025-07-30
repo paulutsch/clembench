@@ -4,6 +4,7 @@
             "name": "portalgame_standard",
             "game_instances": [
                 {
+                    "game_name": "portalgame",
                     "game_id": 0,
                     "prompt": "You are playing the Portal Game, a maze navigation challenge where your goal is to reach the portal.\n\nGame Elements:\n\n- Portal (O): Your goal — reach it to win.\n- Door (D): A door that can be opened or closed.\n- Switch (S): Opens and closes the door.\n- Regular Walls (W): You can't pass through them.\n- Empty cells (' '): You can pass through them.\n\nResponse Format: Write one sentence of reasoning above your move. End your response with a line of the form:\n\nDIRECTION: <letter>\n\nwhere <letter> is one of n (to move north/up), s (to move south/down), e (to move east/right), or w (to move west/left).",
                     "height": 10,
@@ -76,6 +77,7 @@
                     }
                 },
                 {
+                    "game_name": "portalgame",
                     "game_id": 1,
                     "prompt": "You are playing the Portal Game, a maze navigation challenge where your goal is to reach the portal.\n\nGame Elements:\n\n- Portal (O): Your goal — reach it to win.\n- Door (D): A door that can be opened or closed.\n- Switch (S): Opens and closes the door.\n- Regular Walls (W): You can't pass through them.\n- Empty cells (' '): You can pass through them.\n\nResponse Format: Write one sentence of reasoning above your move. End your response with a line of the form:\n\nDIRECTION: <letter>\n\nwhere <letter> is one of n (to move north/up), s (to move south/down), e (to move east/right), or w (to move west/left).",
                     "height": 10,
