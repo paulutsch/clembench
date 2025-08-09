@@ -10,15 +10,12 @@ from clemcore.clemgame import (
     Observation,
 )
 from clemcore.clemgame.metrics import BENCH_SCORE, METRIC_ABORTED, METRIC_SUCCESS
-from clemcore.utils.logger import format_json, setup_logger
 
 from tictactoegame.game_environment import (
     TicTacToeAction,
     TicTacToeEnvironment,
     TicTacToePlayer,
 )
-
-logger = setup_logger(__name__)
 
 
 class TicTacToeGame(EnvGameMaster):
@@ -30,13 +27,7 @@ class TicTacToeGame(EnvGameMaster):
         experiment: Dict,
         player_models: List[Model],
     ):
-        logger.info(
-            f"[_init] Initializing TicTacToeGame GameMaster with spec={game_spec}"
-        )
-        logger.debug(f"[_init] Experiment parameters: {experiment}")
-
         super().__init__(game_spec, experiment, player_models)
-        logger.info("[_init] TicTacToeGame initialization complete")
 
     def _on_setup(self, **game_instance):
         """
@@ -45,9 +36,6 @@ class TicTacToeGame(EnvGameMaster):
         Args:
             game_instance: Game instance parameters from instances.json
         """
-        logger.info("[_on_setup] Setting up TicTacToeGame")
-        logger.debug(f"[_on_setup] Game instance: {game_instance}")
-
         self.game_environment = TicTacToeEnvironment(game_instance)
 
         self.player_x = TicTacToePlayer(self.player_models[0])
@@ -55,13 +43,8 @@ class TicTacToeGame(EnvGameMaster):
         self.player_x.symbol = "X"
         self.player_o.symbol = "O"
 
-        logger.debug(f"[_on_setup] Created players: {self.player_x}, {self.player_o}")
-
         self.add_player(self.player_x)
         self.add_player(self.player_o)
-        logger.info(
-            f"[_on_setup] Added players: {self.player_x.name}, {self.player_o.name}"
-        )
 
         self.game_environment.reset()
 
@@ -122,8 +105,6 @@ class TicTacToeGame(EnvGameMaster):
         Returns:
             float: The episode score
         """
-        logger.info("[_compute_episode_score] Computing episode score")
-
         success = self.game_environment.state["success"]
         not_aborted = not self.game_environment.state["aborted"]
 
@@ -156,15 +137,10 @@ class TicTacToeGameScorer(GameScorer):
 class TicTacToeGameBenchmark(GameBenchmark):
     def __init__(self, game_spec: GameSpec):
         super().__init__(game_spec)
-        logger.info(f"TicTacToeGameBenchmark initialized with game spec: {game_spec}")
 
     def create_game_master(
         self, experiment: Dict, player_models: List[Model]
     ) -> TicTacToeGame:
-        logger.info(f"Creating TicTacToeGame master with experiment: {experiment}")
-        logger.debug(
-            f"Player models: {[model.__class__.__name__ for model in player_models]}"
-        )
         return TicTacToeGame(
             self.game_spec,
             experiment,
@@ -182,6 +158,4 @@ class TicTacToeGameBenchmark(GameBenchmark):
         Returns:
             A TicTacToeGameScorer instance
         """
-        logger.info(f"Creating TicTacToeGameScorer with experiment: {experiment}")
-        logger.debug(f"Game instance for scorer: \n{format_json(game_instance)}")
         return TicTacToeGameScorer(self.game_name, experiment, game_instance)

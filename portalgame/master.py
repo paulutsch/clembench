@@ -3,12 +3,14 @@ from typing import Dict, List
 
 from clemcore.backends import Model
 from clemcore.clemgame import EnvGameMaster, GameBenchmark, GameScorer, GameSpec, Player
-from clemcore.clemgame.metrics import BENCH_SCORE, METRIC_ABORTED, METRIC_SUCCESS
-from clemcore.utils.logger import setup_logger
+from clemcore.clemgame.metrics import (
+    BENCH_SCORE,
+    METRIC_ABORTED,
+    METRIC_LOSE,
+    METRIC_SUCCESS,
+)
 
 from portalgame.game_environment import PortalAction, PortalGameEnvironment
-
-logger = setup_logger(__name__)
 
 
 class PortalPlayer(Player):
@@ -31,10 +33,7 @@ class PortalGame(EnvGameMaster):
         experiment: Dict,
         player_models: List[Model],
     ):
-        logger.info(f"[_init] Initializing PortalGame GameMaster with spec={game_spec}")
-        logger.debug(f"[_init] Experiment parameters: {experiment}")
         super().__init__(game_spec, experiment, player_models)
-        logger.info("[_init] PortalGame initialization complete")
 
     def _on_setup(self, **game_instance):
         """
@@ -43,17 +42,10 @@ class PortalGame(EnvGameMaster):
         Args:
             game_instance: Game instance parameters from instances.json
         """
-        logger.info("[_on_setup] Setting up PortalGame")
-        logger.debug(f"[_on_setup] Game instance: {game_instance}")
-
         self.game_environment = PortalGameEnvironment(config=game_instance)
-        logger.info(f"[_on_setup] Game environment: {self.game_environment}")
 
         self.player = PortalPlayer(self.player_models[0])
-        logger.debug(f"[_on_setup] Created player: {self.player}")
-
         self.add_player(self.player)
-        logger.info(f"[_on_setup] Added player: {self.player.name}")
 
         self.game_environment.reset()
 
@@ -107,34 +99,6 @@ class PortalGame(EnvGameMaster):
         }
         return action
 
-    def compute_turn_score(self) -> float:
-        """
-        Compute a score for the player's response based on the environment state.
-
-        Args:
-            response: The player's response
-            context: Additional context for scoring
-
-        Returns:
-            float: The score for the response
-        """
-        score = 1.0 if self.game_environment.state["success"] else 0.0
-        return score
-
-    def compute_episode_score(self) -> float:
-        """
-        Compute the overall episode score.
-
-        Returns:
-            float: The episode score
-        """
-        logger.info("[_compute_episode_score] Computing episode score")
-
-        success = self.game_environment.state["success"]
-        not_aborted = not self.game_environment.state["aborted"]
-
-        return (not_aborted + success) / 2
-
 
 class PortalGameScorer(GameScorer):
     """Scorer for the Portal game."""
@@ -142,20 +106,42 @@ class PortalGameScorer(GameScorer):
     def __init__(self, game_name: str, experiment: Dict, game_instance: Dict):
         super().__init__(game_name, experiment, game_instance)
 
+    def compute_round_score(self, round_idx, round_events):
+        self.log_round_score(
+            round_idx,
+            "Distance to Portal",
+            round_events[-1]["action"]["content"]["distance_to_portal"],
+        )
+
     def compute_episode_scores(self, interactions: Dict) -> None:
         """Compute episode-level scores for the Portal game.
 
         Args:
             interactions: Dict containing the logged episode's interactions.
         """
+        lose = interactions.get(METRIC_LOSE, False)
         aborted = interactions.get(METRIC_ABORTED, False)
         success = interactions.get(METRIC_SUCCESS, False)
 
-        if aborted:
+        shortest_path = self.game_instance["shortest_path"]
+        moves = sum(interactions["Request Count"])
+        efficiency = shortest_path / moves
+
+        average_distance_to_portal = sum(
+            e[-1]["action"]["content"]["distance_to_portal"]
+            for e in interactions["turns"]
+        ) / len(interactions["turns"])
+
+        if aborted or lose:
             bench_score = 0.0
         else:
             bench_score = 100.0 if success else 0.0
 
+            # for example: the more efficient the player is, the higher the bench score
+            bench_score = bench_score - (50 * (1 - efficiency))
+
+        self.log_episode_score("Efficiency", efficiency)
+        self.log_episode_score("Average Distance to Portal", average_distance_to_portal)
         self.log_episode_score(BENCH_SCORE, bench_score)
 
 

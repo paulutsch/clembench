@@ -10,11 +10,8 @@ from clemcore.clemgame import (
     Player,
     PlayerObject,
 )
-from clemcore.utils.logger import setup_logger
 
 from portalgame.objects import Door, Portal, Switch, Wall
-
-logger = setup_logger(__name__)
 
 
 class PortalAction(Action):
@@ -103,7 +100,6 @@ class PortalGameEnvironment(GridEnvironment):
     def _construct_grid(self) -> None:
         """Construct the game grid based on the config."""
         if "grid" not in self.config:
-            logger.warning("No grid configuration found, using default grid")
             return
 
         grid_config = self.config["grid"]
@@ -178,12 +174,7 @@ class PortalGameEnvironment(GridEnvironment):
         self.state["terminated"] = False
         self.state["success"] = True
 
-        logger.info(f"New cell objects: {new_cell_objects}")
-
         if new_cell_objects != [] and isinstance(new_cell_objects[0], Switch):
-            logger.info(
-                f"Switch activated at {self.state['player_positions'][player.name]}"
-            )
             new_cell_objects[0].activated = not new_cell_objects[0].activated
             for y in self.state["grid"]:
                 for cell in y:
@@ -276,3 +267,27 @@ class PortalGameEnvironment(GridEnvironment):
             self.state["warning"] = ""
 
             self.observations[player.name] = observation
+
+    def state_to_log(self):
+        """Log the current state of the environment to the game master."""
+        distance_to_portal = 0
+        for row in self.state["grid"]:
+            for cell in row:
+                if cell["objects"] != [] and isinstance(cell["objects"][0], Portal):
+                    distance_to_portal = abs(
+                        cell["position"][0]
+                        - self.state["player_positions"][self.players[0].name][0]
+                    ) + abs(
+                        cell["position"][1]
+                        - self.state["player_positions"][self.players[0].name][1]
+                    )
+                    break
+
+        return {
+            "player_positions": self.state["player_positions"],
+            "grid": self.render_state(),
+            "terminated": self.state["terminated"],
+            "success": self.state["success"],
+            "aborted": self.state["aborted"],
+            "distance_to_portal": distance_to_portal,
+        }

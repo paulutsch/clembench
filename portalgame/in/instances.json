@@ -10,6 +10,7 @@
                     "height": 10,
                     "width": 10,
                     "max_moves": 20,
+                    "shortest_path": 7,
                     "limited_visibility": true,
                     "render_as": "image",
                     "grid": {
@@ -83,6 +84,7 @@
                     "height": 10,
                     "width": 10,
                     "max_moves": 20,
+                    "shortest_path": 14,
                     "limited_visibility": true,
                     "render_as": "string",
                     "grid": {

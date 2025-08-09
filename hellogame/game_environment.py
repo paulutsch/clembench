@@ -13,9 +13,6 @@ from clemcore.clemgame import (
     Observation,
 )
 from clemcore.clemgame.player import Player
-from clemcore.utils.logger import format_json, setup_logger
-
-logger = setup_logger(__name__)
 
 
 class HelloGameState(GameState):
@@ -60,8 +57,6 @@ class HelloGameEnvironment(GameEnvironment):
                 - Initial observation dictionary
                 - Information dictionary
         """
-        logger.info("[reset] Resetting environment")
-
         target_name = self.config["target_name"]
 
         required_words = ["welcome", "hello", target_name.lower()]
@@ -75,9 +70,6 @@ class HelloGameEnvironment(GameEnvironment):
             "moves": 0,
             "warning": "",
         }
-        logger.debug(f"[reset] Reset state — new state: \n{format_json(self.state)}")
-
-        logger.info("[reset] Environment reset complete")
 
         greeter_observation: Observation = {
             "role": "user",
@@ -104,7 +96,6 @@ class HelloGameEnvironment(GameEnvironment):
             ),
         }
         self.observations[player.name] = observation
-        logger.debug(f"[step] Observation: \n{format_json(observation)}")
 
     def _update_state_through_action(self, player: Player, action: HelloGameAction):
         """
@@ -117,9 +108,6 @@ class HelloGameEnvironment(GameEnvironment):
         self.state["terminated"] = True
 
         if not response.startswith("GREET:"):
-            logger.warning(
-                f"[_validate_action] Invalid action: action body doesn't start with 'GREET:': {action}"
-            )
             self.state["aborted"] = True
             self.state["success"] = False
             self.state["terminated"] = True
@@ -128,14 +116,10 @@ class HelloGameEnvironment(GameEnvironment):
         response_clean = response_lower.translate(
             str.maketrans("", "", string.punctuation)
         )
-        logger.debug(f"[_validate_action] Cleaned response: {response_clean}")
 
         missing_words = []
         for required_word in self.state["required_words"]:
             if required_word not in response_clean:
-                logger.debug(
-                    f"[_validate_action] Missing required word: {required_word}"
-                )
                 self.state["success"] = False
                 self.state["terminated"] = True
                 missing_words.append(required_word)

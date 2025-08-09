@@ -10,9 +10,6 @@ from clemcore.clemgame import (
     Player,
 )
 from clemcore.clemgame.grid_environment import Position
-from clemcore.utils.logger import setup_logger
-
-logger = setup_logger(__name__)
 
 
 class TicTacToeAction(Action):
@@ -107,16 +104,13 @@ class TicTacToeEnvironment(GridEnvironment):
         col = action.get("col")
 
         if row is None or col is None:
-            logger.warning(f"Missing row or col in action: {action}")
             return False, "Missing row or col in action"
 
         if not (0 <= row < 3 and 0 <= col < 3):
-            logger.warning(f"Position ({row}, {col}) is out of bounds")
             return False, f"Position ({row}, {col}) is out of bounds"
 
         board = self._get_board_from_grid()
         if board[row][col] != "⬜️":
-            logger.warning(f"Position ({row}, {col}) is already occupied")
             return False, f"Position ({row}, {col}) is already occupied"
 
         return True, ""
@@ -125,7 +119,6 @@ class TicTacToeEnvironment(GridEnvironment):
         """Check if a move is valid."""
 
         if row is None or col is None:
-            logger.warning(f"Invalid move: {row}, {col}")
             return False
 
         row_is_valid = 0 <= row < 3

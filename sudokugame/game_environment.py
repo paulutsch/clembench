@@ -12,10 +12,8 @@ from clemcore.clemgame import (
     Player,
 )
 from clemcore.clemgame.grid_environment import Position
-from clemcore.utils.logger import setup_logger
 from sudoku import Sudoku
 
-logger = setup_logger(__name__)
 
 
 class SudokuPlayer(Player):
@@ -63,7 +61,6 @@ class SudokuEnvironment(GridEnvironment):
         self.original_grid = [
             [0 if cell is None else cell for cell in row] for row in original_grid
         ]
-        logger.info(f"[_initialize_grid] Original grid: {self.original_grid}")
 
         self.observations: Dict[str, Observation] = {}
         self.action_spaces: Dict[str, ActionSpace] = {}
@@ -103,17 +100,11 @@ class SudokuEnvironment(GridEnvironment):
         self, grid: List[List[int]], row: int, col: int, value: int
     ) -> bool:
         if grid[row][col] != 0:
-            logger.warning(
-                f"[_is_grid_valid] Cell is already filled, row: {row}, col: {col}, value: {value}"
-            )
             return False
 
         # Convert to numpy for easier array operations
         grid_np = np.array(grid)
         if value in grid_np[row] or value in grid_np[:, col]:
-            logger.warning(
-                f"[_is_grid_valid] Value {value} already in row {row} or column {col}"
-            )
             return False
 
         block_size = 3
@@ -125,12 +116,8 @@ class SudokuEnvironment(GridEnvironment):
                 block_row : block_row + block_size, block_col : block_col + block_size
             ]
         ):
-            logger.warning(
-                f"[_is_grid_valid] Value {value} already in block {block_row} {block_col}"
-            )
             return False
 
-        logger.info(f"[_is_grid_valid] Grid is valid")
         return True
 
     def _is_grid_solved(self, grid: List[List[int]]) -> bool:
@@ -185,8 +172,6 @@ class SudokuEnvironment(GridEnvironment):
             self.state["terminated"] = False
             self.state["success"] = True
             self.state["aborted"] = False
-
-        logger.info(f"[_update_state_through_action] Board updated, action: {action}")
 
     def update_observations(self) -> None:
         """Update the observation for all players."""
