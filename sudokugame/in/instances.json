@@ -1,19 +1,322 @@
 {
-    "experiments": [
+  "experiments": [
+    {
+      "name": "sudoku_easy",
+      "game_instances": [
         {
-            "name": "sudoku_standard",
-            "game_instances": [
-                {
-                    "game_id": 0,
-                    "prompt": "You are playing a Sudoku game. Sudoku is a number puzzle played on a grid made up of subgrids. The goal is to fill the grid with numbers following these rules: 1) Each row must contain all numbers 1 to n_size without repetition, 2) Each column must contain all numbers 1 to n_size without repetition, 3) Each subgrid must contain all numbers 1 to n_rows without repetition. Fill in the next number on your road to solve the puzzle, by replacing any of the 0s with the correct number. Answer in the following format: '<row> <col> <value>', example: '0 0 1'. Note that row anc col values start with 0. Return nothing but the '<row> <col> <value>', otherwise the parsing won't work.",
-                    "width": 9,
-                    "height": 9,
-                    "render_as": "string",
-                    "max_moves": 20,
-                    "difficulty": 0.1
-                }
-            ],
-            "language": "en"
+          "game_id": 0,
+          "game_name": "sudokugame",
+          "prompt": "You are playing a Sudoku game. Sudoku is a number puzzle played on a grid made up of subgrids. The goal is to fill the grid with numbers following these rules: 1) Each row must contain all numbers 1 to n_size without repetition, 2) Each column must contain all numbers 1 to n_size without repetition, 3) Each subgrid must contain all numbers 1 to n_rows without repetition. Fill in the next number on your road to solve the puzzle, by replacing any of the 0s with the correct number. Answer in the following format: '<row> <col> <value>', example: '0 0 1'. Note that row and col values start with 0. Return nothing but the '<row> <col> <value>', otherwise the parsing won't work.",
+          "width": 9,
+          "height": 9,
+          "render_as": "string",
+          "max_moves": 20,
+          "difficulty": 0.1
+        },
+        {
+          "game_id": 1,
+          "game_name": "sudokugame",
+          "prompt": "You are playing a Sudoku game. Sudoku is a number puzzle played on a grid made up of subgrids. The goal is to fill the grid with numbers following these rules: 1) Each row must contain all numbers 1 to n_size without repetition, 2) Each column must contain all numbers 1 to n_size without repetition, 3) Each subgrid must contain all numbers 1 to n_rows without repetition. Fill in the next number on your road to solve the puzzle, by replacing any of the 0s with the correct number. Answer in the following format: '<row> <col> <value>', example: '0 0 1'. Note that row and col values start with 0. Return nothing but the '<row> <col> <value>', otherwise the parsing won't work.",
+          "width": 9,
+          "height": 9,
+          "render_as": "string",
+          "max_moves": 20,
+          "difficulty": 0.1
+        },
+        {
+          "game_id": 2,
+          "game_name": "sudokugame",
+          "prompt": "You are playing a Sudoku game. Sudoku is a number puzzle played on a grid made up of subgrids. The goal is to fill the grid with numbers following these rules: 1) Each row must contain all numbers 1 to n_size without repetition, 2) Each column must contain all numbers 1 to n_size without repetition, 3) Each subgrid must contain all numbers 1 to n_rows without repetition. Fill in the next number on your road to solve the puzzle, by replacing any of the 0s with the correct number. Answer in the following format: '<row> <col> <value>', example: '0 0 1'. Note that row and col values start with 0. Return nothing but the '<row> <col> <value>', otherwise the parsing won't work.",
+          "width": 9,
+          "height": 9,
+          "render_as": "string",
+          "max_moves": 20,
+          "difficulty": 0.1
+        },
+        {
+          "game_id": 3,
+          "game_name": "sudokugame",
+          "prompt": "You are playing a Sudoku game. Sudoku is a number puzzle played on a grid made up of subgrids. The goal is to fill the grid with numbers following these rules: 1) Each row must contain all numbers 1 to n_size without repetition, 2) Each column must contain all numbers 1 to n_size without repetition, 3) Each subgrid must contain all numbers 1 to n_rows without repetition. Fill in the next number on your road to solve the puzzle, by replacing any of the 0s with the correct number. Answer in the following format: '<row> <col> <value>', example: '0 0 1'. Note that row and col values start with 0. Return nothing but the '<row> <col> <value>', otherwise the parsing won't work.",
+          "width": 9,
+          "height": 9,
+          "render_as": "string",
+          "max_moves": 20,
+          "difficulty": 0.1
+        },
+        {
+          "game_id": 4,
+          "game_name": "sudokugame",
+          "prompt": "You are playing a Sudoku game. Sudoku is a number puzzle played on a grid made up of subgrids. The goal is to fill the grid with numbers following these rules: 1) Each row must contain all numbers 1 to n_size without repetition, 2) Each column must contain all numbers 1 to n_size without repetition, 3) Each subgrid must contain all numbers 1 to n_rows without repetition. Fill in the next number on your road to solve the puzzle, by replacing any of the 0s with the correct number. Answer in the following format: '<row> <col> <value>', example: '0 0 1'. Note that row and col values start with 0. Return nothing but the '<row> <col> <value>', otherwise the parsing won't work.",
+          "width": 9,
+          "height": 9,
+          "render_as": "string",
+          "max_moves": 20,
+          "difficulty": 0.1
+        },
+        {
+          "game_id": 5,
+          "game_name": "sudokugame",
+          "prompt": "You are playing a Sudoku game. Sudoku is a number puzzle played on a grid made up of subgrids. The goal is to fill the grid with numbers following these rules: 1) Each row must contain all numbers 1 to n_size without repetition, 2) Each column must contain all numbers 1 to n_size without repetition, 3) Each subgrid must contain all numbers 1 to n_rows without repetition. Fill in the next number on your road to solve the puzzle, by replacing any of the 0s with the correct number. Answer in the following format: '<row> <col> <value>', example: '0 0 1'. Note that row and col values start with 0. Return nothing but the '<row> <col> <value>', otherwise the parsing won't work.",
+          "width": 9,
+          "height": 9,
+          "render_as": "string",
+          "max_moves": 20,
+          "difficulty": 0.1
+        },
+        {
+          "game_id": 6,
+          "game_name": "sudokugame",
+          "prompt": "You are playing a Sudoku game. Sudoku is a number puzzle played on a grid made up of subgrids. The goal is to fill the grid with numbers following these rules: 1) Each row must contain all numbers 1 to n_size without repetition, 2) Each column must contain all numbers 1 to n_size without repetition, 3) Each subgrid must contain all numbers 1 to n_rows without repetition. Fill in the next number on your road to solve the puzzle, by replacing any of the 0s with the correct number. Answer in the following format: '<row> <col> <value>', example: '0 0 1'. Note that row and col values start with 0. Return nothing but the '<row> <col> <value>', otherwise the parsing won't work.",
+          "width": 9,
+          "height": 9,
+          "render_as": "string",
+          "max_moves": 20,
+          "difficulty": 0.1
+        },
+        {
+          "game_id": 7,
+          "game_name": "sudokugame",
+          "prompt": "You are playing a Sudoku game. Sudoku is a number puzzle played on a grid made up of subgrids. The goal is to fill the grid with numbers following these rules: 1) Each row must contain all numbers 1 to n_size without repetition, 2) Each column must contain all numbers 1 to n_size without repetition, 3) Each subgrid must contain all numbers 1 to n_rows without repetition. Fill in the next number on your road to solve the puzzle, by replacing any of the 0s with the correct number. Answer in the following format: '<row> <col> <value>', example: '0 0 1'. Note that row and col values start with 0. Return nothing but the '<row> <col> <value>', otherwise the parsing won't work.",
+          "width": 9,
+          "height": 9,
+          "render_as": "string",
+          "max_moves": 20,
+          "difficulty": 0.1
+        },
+        {
+          "game_id": 8,
+          "game_name": "sudokugame",
+          "prompt": "You are playing a Sudoku game. Sudoku is a number puzzle played on a grid made up of subgrids. The goal is to fill the grid with numbers following these rules: 1) Each row must contain all numbers 1 to n_size without repetition, 2) Each column must contain all numbers 1 to n_size without repetition, 3) Each subgrid must contain all numbers 1 to n_rows without repetition. Fill in the next number on your road to solve the puzzle, by replacing any of the 0s with the correct number. Answer in the following format: '<row> <col> <value>', example: '0 0 1'. Note that row and col values start with 0. Return nothing but the '<row> <col> <value>', otherwise the parsing won't work.",
+          "width": 9,
+          "height": 9,
+          "render_as": "string",
+          "max_moves": 20,
+          "difficulty": 0.1
+        },
+        {
+          "game_id": 9,
+          "game_name": "sudokugame",
+          "prompt": "You are playing a Sudoku game. Sudoku is a number puzzle played on a grid made up of subgrids. The goal is to fill the grid with numbers following these rules: 1) Each row must contain all numbers 1 to n_size without repetition, 2) Each column must contain all numbers 1 to n_size without repetition, 3) Each subgrid must contain all numbers 1 to n_rows without repetition. Fill in the next number on your road to solve the puzzle, by replacing any of the 0s with the correct number. Answer in the following format: '<row> <col> <value>', example: '0 0 1'. Note that row and col values start with 0. Return nothing but the '<row> <col> <value>', otherwise the parsing won't work.",
+          "width": 9,
+          "height": 9,
+          "render_as": "string",
+          "max_moves": 20,
+          "difficulty": 0.1
         }
-    ]
+      ],
+      "language": "en"
+    },
+    {
+      "name": "sudoku_medium",
+      "game_instances": [
+        {
+          "game_id": 0,
+          "game_name": "sudokugame",
+          "prompt": "You are playing a Sudoku game. Sudoku is a number puzzle played on a grid made up of subgrids. The goal is to fill the grid with numbers following these rules: 1) Each row must contain all numbers 1 to n_size without repetition, 2) Each column must contain all numbers 1 to n_size without repetition, 3) Each subgrid must contain all numbers 1 to n_rows without repetition. Fill in the next number on your road to solve the puzzle, by replacing any of the 0s with the correct number. Answer in the following format: '<row> <col> <value>', example: '0 0 1'. Note that row and col values start with 0. Return nothing but the '<row> <col> <value>', otherwise the parsing won't work.",
+          "width": 9,
+          "height": 9,
+          "render_as": "string",
+          "max_moves": 20,
+          "difficulty": 0.5
+        },
+        {
+          "game_id": 1,
+          "game_name": "sudokugame",
+          "prompt": "You are playing a Sudoku game. Sudoku is a number puzzle played on a grid made up of subgrids. The goal is to fill the grid with numbers following these rules: 1) Each row must contain all numbers 1 to n_size without repetition, 2) Each column must contain all numbers 1 to n_size without repetition, 3) Each subgrid must contain all numbers 1 to n_rows without repetition. Fill in the next number on your road to solve the puzzle, by replacing any of the 0s with the correct number. Answer in the following format: '<row> <col> <value>', example: '0 0 1'. Note that row and col values start with 0. Return nothing but the '<row> <col> <value>', otherwise the parsing won't work.",
+          "width": 9,
+          "height": 9,
+          "render_as": "string",
+          "max_moves": 20,
+          "difficulty": 0.5
+        },
+        {
+          "game_id": 2,
+          "game_name": "sudokugame",
+          "prompt": "You are playing a Sudoku game. Sudoku is a number puzzle played on a grid made up of subgrids. The goal is to fill the grid with numbers following these rules: 1) Each row must contain all numbers 1 to n_size without repetition, 2) Each column must contain all numbers 1 to n_size without repetition, 3) Each subgrid must contain all numbers 1 to n_rows without repetition. Fill in the next number on your road to solve the puzzle, by replacing any of the 0s with the correct number. Answer in the following format: '<row> <col> <value>', example: '0 0 1'. Note that row and col values start with 0. Return nothing but the '<row> <col> <value>', otherwise the parsing won't work.",
+          "width": 9,
+          "height": 9,
+          "render_as": "string",
+          "max_moves": 20,
+          "difficulty": 0.5
+        },
+        {
+          "game_id": 3,
+          "game_name": "sudokugame",
+          "prompt": "You are playing a Sudoku game. Sudoku is a number puzzle played on a grid made up of subgrids. The goal is to fill the grid with numbers following these rules: 1) Each row must contain all numbers 1 to n_size without repetition, 2) Each column must contain all numbers 1 to n_size without repetition, 3) Each subgrid must contain all numbers 1 to n_rows without repetition. Fill in the next number on your road to solve the puzzle, by replacing any of the 0s with the correct number. Answer in the following format: '<row> <col> <value>', example: '0 0 1'. Note that row and col values start with 0. Return nothing but the '<row> <col> <value>', otherwise the parsing won't work.",
+          "width": 9,
+          "height": 9,
+          "render_as": "string",
+          "max_moves": 20,
+          "difficulty": 0.5
+        },
+        {
+          "game_id": 4,
+          "game_name": "sudokugame",
+          "prompt": "You are playing a Sudoku game. Sudoku is a number puzzle played on a grid made up of subgrids. The goal is to fill the grid with numbers following these rules: 1) Each row must contain all numbers 1 to n_size without repetition, 2) Each column must contain all numbers 1 to n_size without repetition, 3) Each subgrid must contain all numbers 1 to n_rows without repetition. Fill in the next number on your road to solve the puzzle, by replacing any of the 0s with the correct number. Answer in the following format: '<row> <col> <value>', example: '0 0 1'. Note that row and col values start with 0. Return nothing but the '<row> <col> <value>', otherwise the parsing won't work.",
+          "width": 9,
+          "height": 9,
+          "render_as": "string",
+          "max_moves": 20,
+          "difficulty": 0.5
+        },
+        {
+          "game_id": 5,
+          "game_name": "sudokugame",
+          "prompt": "You are playing a Sudoku game. Sudoku is a number puzzle played on a grid made up of subgrids. The goal is to fill the grid with numbers following these rules: 1) Each row must contain all numbers 1 to n_size without repetition, 2) Each column must contain all numbers 1 to n_size without repetition, 3) Each subgrid must contain all numbers 1 to n_rows without repetition. Fill in the next number on your road to solve the puzzle, by replacing any of the 0s with the correct number. Answer in the following format: '<row> <col> <value>', example: '0 0 1'. Note that row and col values start with 0. Return nothing but the '<row> <col> <value>', otherwise the parsing won't work.",
+          "width": 9,
+          "height": 9,
+          "render_as": "string",
+          "max_moves": 20,
+          "difficulty": 0.5
+        },
+        {
+          "game_id": 6,
+          "game_name": "sudokugame",
+          "prompt": "You are playing a Sudoku game. Sudoku is a number puzzle played on a grid made up of subgrids. The goal is to fill the grid with numbers following these rules: 1) Each row must contain all numbers 1 to n_size without repetition, 2) Each column must contain all numbers 1 to n_size without repetition, 3) Each subgrid must contain all numbers 1 to n_rows without repetition. Fill in the next number on your road to solve the puzzle, by replacing any of the 0s with the correct number. Answer in the following format: '<row> <col> <value>', example: '0 0 1'. Note that row and col values start with 0. Return nothing but the '<row> <col> <value>', otherwise the parsing won't work.",
+          "width": 9,
+          "height": 9,
+          "render_as": "string",
+          "max_moves": 20,
+          "difficulty": 0.5
+        },
+        {
+          "game_id": 7,
+          "game_name": "sudokugame",
+          "prompt": "You are playing a Sudoku game. Sudoku is a number puzzle played on a grid made up of subgrids. The goal is to fill the grid with numbers following these rules: 1) Each row must contain all numbers 1 to n_size without repetition, 2) Each column must contain all numbers 1 to n_size without repetition, 3) Each subgrid must contain all numbers 1 to n_rows without repetition. Fill in the next number on your road to solve the puzzle, by replacing any of the 0s with the correct number. Answer in the following format: '<row> <col> <value>', example: '0 0 1'. Note that row and col values start with 0. Return nothing but the '<row> <col> <value>', otherwise the parsing won't work.",
+          "width": 9,
+          "height": 9,
+          "render_as": "string",
+          "max_moves": 20,
+          "difficulty": 0.5
+        },
+        {
+          "game_id": 8,
+          "game_name": "sudokugame",
+          "prompt": "You are playing a Sudoku game. Sudoku is a number puzzle played on a grid made up of subgrids. The goal is to fill the grid with numbers following these rules: 1) Each row must contain all numbers 1 to n_size without repetition, 2) Each column must contain all numbers 1 to n_size without repetition, 3) Each subgrid must contain all numbers 1 to n_rows without repetition. Fill in the next number on your road to solve the puzzle, by replacing any of the 0s with the correct number. Answer in the following format: '<row> <col> <value>', example: '0 0 1'. Note that row and col values start with 0. Return nothing but the '<row> <col> <value>', otherwise the parsing won't work.",
+          "width": 9,
+          "height": 9,
+          "render_as": "string",
+          "max_moves": 20,
+          "difficulty": 0.5
+        },
+        {
+          "game_id": 9,
+          "game_name": "sudokugame",
+          "prompt": "You are playing a Sudoku game. Sudoku is a number puzzle played on a grid made up of subgrids. The goal is to fill the grid with numbers following these rules: 1) Each row must contain all numbers 1 to n_size without repetition, 2) Each column must contain all numbers 1 to n_size without repetition, 3) Each subgrid must contain all numbers 1 to n_rows without repetition. Fill in the next number on your road to solve the puzzle, by replacing any of the 0s with the correct number. Answer in the following format: '<row> <col> <value>', example: '0 0 1'. Note that row and col values start with 0. Return nothing but the '<row> <col> <value>', otherwise the parsing won't work.",
+          "width": 9,
+          "height": 9,
+          "render_as": "string",
+          "max_moves": 20,
+          "difficulty": 0.5
+        }
+      ],
+      "language": "en"
+    },
+    {
+      "name": "sudoku_hard",
+      "game_instances": [
+        {
+          "game_id": 0,
+          "game_name": "sudokugame",
+          "prompt": "You are playing a Sudoku game. Sudoku is a number puzzle played on a grid made up of subgrids. The goal is to fill the grid with numbers following these rules: 1) Each row must contain all numbers 1 to n_size without repetition, 2) Each column must contain all numbers 1 to n_size without repetition, 3) Each subgrid must contain all numbers 1 to n_rows without repetition. Fill in the next number on your road to solve the puzzle, by replacing any of the 0s with the correct number. Answer in the following format: '<row> <col> <value>', example: '0 0 1'. Note that row and col values start with 0. Return nothing but the '<row> <col> <value>', otherwise the parsing won't work.",
+          "width": 9,
+          "height": 9,
+          "render_as": "string",
+          "max_moves": 20,
+          "difficulty": 0.9
+        },
+        {
+          "game_id": 1,
+          "game_name": "sudokugame",
+          "prompt": "You are playing a Sudoku game. Sudoku is a number puzzle played on a grid made up of subgrids. The goal is to fill the grid with numbers following these rules: 1) Each row must contain all numbers 1 to n_size without repetition, 2) Each column must contain all numbers 1 to n_size without repetition, 3) Each subgrid must contain all numbers 1 to n_rows without repetition. Fill in the next number on your road to solve the puzzle, by replacing any of the 0s with the correct number. Answer in the following format: '<row> <col> <value>', example: '0 0 1'. Note that row and col values start with 0. Return nothing but the '<row> <col> <value>', otherwise the parsing won't work.",
+          "width": 9,
+          "height": 9,
+          "render_as": "string",
+          "max_moves": 20,
+          "difficulty": 0.9
+        },
+        {
+          "game_id": 2,
+          "game_name": "sudokugame",
+          "prompt": "You are playing a Sudoku game. Sudoku is a number puzzle played on a grid made up of subgrids. The goal is to fill the grid with numbers following these rules: 1) Each row must contain all numbers 1 to n_size without repetition, 2) Each column must contain all numbers 1 to n_size without repetition, 3) Each subgrid must contain all numbers 1 to n_rows without repetition. Fill in the next number on your road to solve the puzzle, by replacing any of the 0s with the correct number. Answer in the following format: '<row> <col> <value>', example: '0 0 1'. Note that row and col values start with 0. Return nothing but the '<row> <col> <value>', otherwise the parsing won't work.",
+          "width": 9,
+          "height": 9,
+          "render_as": "string",
+          "max_moves": 20,
+          "difficulty": 0.9
+        },
+        {
+          "game_id": 3,
+          "game_name": "sudokugame",
+          "prompt": "You are playing a Sudoku game. Sudoku is a number puzzle played on a grid made up of subgrids. The goal is to fill the grid with numbers following these rules: 1) Each row must contain all numbers 1 to n_size without repetition, 2) Each column must contain all numbers 1 to n_size without repetition, 3) Each subgrid must contain all numbers 1 to n_rows without repetition. Fill in the next number on your road to solve the puzzle, by replacing any of the 0s with the correct number. Answer in the following format: '<row> <col> <value>', example: '0 0 1'. Note that row and col values start with 0. Return nothing but the '<row> <col> <value>', otherwise the parsing won't work.",
+          "width": 9,
+          "height": 9,
+          "render_as": "string",
+          "max_moves": 20,
+          "difficulty": 0.9
+        },
+        {
+          "game_id": 4,
+          "game_name": "sudokugame",
+          "prompt": "You are playing a Sudoku game. Sudoku is a number puzzle played on a grid made up of subgrids. The goal is to fill the grid with numbers following these rules: 1) Each row must contain all numbers 1 to n_size without repetition, 2) Each column must contain all numbers 1 to n_size without repetition, 3) Each subgrid must contain all numbers 1 to n_rows without repetition. Fill in the next number on your road to solve the puzzle, by replacing any of the 0s with the correct number. Answer in the following format: '<row> <col> <value>', example: '0 0 1'. Note that row and col values start with 0. Return nothing but the '<row> <col> <value>', otherwise the parsing won't work.",
+          "width": 9,
+          "height": 9,
+          "render_as": "string",
+          "max_moves": 20,
+          "difficulty": 0.9
+        },
+        {
+          "game_id": 5,
+          "game_name": "sudokugame",
+          "prompt": "You are playing a Sudoku game. Sudoku is a number puzzle played on a grid made up of subgrids. The goal is to fill the grid with numbers following these rules: 1) Each row must contain all numbers 1 to n_size without repetition, 2) Each column must contain all numbers 1 to n_size without repetition, 3) Each subgrid must contain all numbers 1 to n_rows without repetition. Fill in the next number on your road to solve the puzzle, by replacing any of the 0s with the correct number. Answer in the following format: '<row> <col> <value>', example: '0 0 1'. Note that row and col values start with 0. Return nothing but the '<row> <col> <value>', otherwise the parsing won't work.",
+          "width": 9,
+          "height": 9,
+          "render_as": "string",
+          "max_moves": 20,
+          "difficulty": 0.9
+        },
+        {
+          "game_id": 6,
+          "game_name": "sudokugame",
+          "prompt": "You are playing a Sudoku game. Sudoku is a number puzzle played on a grid made up of subgrids. The goal is to fill the grid with numbers following these rules: 1) Each row must contain all numbers 1 to n_size without repetition, 2) Each column must contain all numbers 1 to n_size without repetition, 3) Each subgrid must contain all numbers 1 to n_rows without repetition. Fill in the next number on your road to solve the puzzle, by replacing any of the 0s with the correct number. Answer in the following format: '<row> <col> <value>', example: '0 0 1'. Note that row and col values start with 0. Return nothing but the '<row> <col> <value>', otherwise the parsing won't work.",
+          "width": 9,
+          "height": 9,
+          "render_as": "string",
+          "max_moves": 20,
+          "difficulty": 0.9
+        },
+        {
+          "game_id": 7,
+          "game_name": "sudokugame",
+          "prompt": "You are playing a Sudoku game. Sudoku is a number puzzle played on a grid made up of subgrids. The goal is to fill the grid with numbers following these rules: 1) Each row must contain all numbers 1 to n_size without repetition, 2) Each column must contain all numbers 1 to n_size without repetition, 3) Each subgrid must contain all numbers 1 to n_rows without repetition. Fill in the next number on your road to solve the puzzle, by replacing any of the 0s with the correct number. Answer in the following format: '<row> <col> <value>', example: '0 0 1'. Note that row and col values start with 0. Return nothing but the '<row> <col> <value>', otherwise the parsing won't work.",
+          "width": 9,
+          "height": 9,
+          "render_as": "string",
+          "max_moves": 20,
+          "difficulty": 0.9
+        },
+        {
+          "game_id": 8,
+          "game_name": "sudokugame",
+          "prompt": "You are playing a Sudoku game. Sudoku is a number puzzle played on a grid made up of subgrids. The goal is to fill the grid with numbers following these rules: 1) Each row must contain all numbers 1 to n_size without repetition, 2) Each column must contain all numbers 1 to n_size without repetition, 3) Each subgrid must contain all numbers 1 to n_rows without repetition. Fill in the next number on your road to solve the puzzle, by replacing any of the 0s with the correct number. Answer in the following format: '<row> <col> <value>', example: '0 0 1'. Note that row and col values start with 0. Return nothing but the '<row> <col> <value>', otherwise the parsing won't work.",
+          "width": 9,
+          "height": 9,
+          "render_as": "string",
+          "max_moves": 20,
+          "difficulty": 0.9
+        },
+        {
+          "game_id": 9,
+          "game_name": "sudokugame",
+          "prompt": "You are playing a Sudoku game. Sudoku is a number puzzle played on a grid made up of subgrids. The goal is to fill the grid with numbers following these rules: 1) Each row must contain all numbers 1 to n_size without repetition, 2) Each column must contain all numbers 1 to n_size without repetition, 3) Each subgrid must contain all numbers 1 to n_rows without repetition. Fill in the next number on your road to solve the puzzle, by replacing any of the 0s with the correct number. Answer in the following format: '<row> <col> <value>', example: '0 0 1'. Note that row and col values start with 0. Return nothing but the '<row> <col> <value>', otherwise the parsing won't work.",
+          "width": 9,
+          "height": 9,
+          "render_as": "string",
+          "max_moves": 20,
+          "difficulty": 0.9
+        }
+      ],
+      "language": "en"
+    }
+  ]
 }

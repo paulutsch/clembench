@@ -1,4 +1,3 @@
-import json
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -11,9 +10,7 @@ from clemcore.clemgame import (
     Observation,
     Player,
 )
-from clemcore.clemgame.grid_environment import Position
 from sudoku import Sudoku
-
 
 
 class SudokuPlayer(Player):
@@ -36,7 +33,7 @@ class SudokuAction(Action):
 class SudokuObject(Object):
     """Represents a cell in the Sudoku grid."""
 
-    def __init__(self, position: Position, value: int):
+    def __init__(self, position: Tuple[int, int], value: int):
         symbol = str(value)
         emoji_numbers = ["0️⃣", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣"]
         pretty_symbol = emoji_numbers[value] if 0 <= value <= 9 else str(value)
@@ -163,15 +160,13 @@ class SudokuEnvironment(GridEnvironment):
         new_cell = SudokuObject((row, col), value)
         self.add_object(new_cell)
 
+    def check_won(self, player: Player) -> Tuple[bool, bool]:
+        """
+        Check if the player has won.
+        """
         board = self._get_board_from_grid()
-        if self._is_grid_solved(board):
-            self.state["terminated"] = True
-            self.state["success"] = True
-            self.state["aborted"] = False
-        else:
-            self.state["terminated"] = False
-            self.state["success"] = True
-            self.state["aborted"] = False
+        won = self._is_grid_solved(board)
+        return won, True
 
     def update_observations(self) -> None:
         """Update the observation for all players."""
@@ -224,3 +219,12 @@ class SudokuEnvironment(GridEnvironment):
     def _render_state_as_human_readable(self, player_name: str | None = None) -> str:
         """Render state as human readable."""
         return self._render_state_as_string()
+
+    def state_to_log(self):
+        """Log the current state of the environment to the game master."""
+        return {
+            "grid": self._render_state_as_human_readable(),
+            "terminated": self.state["terminated"],
+            "success": self.state["success"],
+            "aborted": self.state["aborted"],
+        }

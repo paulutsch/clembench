@@ -9,7 +9,6 @@ from clemcore.clemgame import (
     Observation,
     Player,
 )
-from clemcore.clemgame.grid_environment import Position
 
 
 class TicTacToeAction(Action):
@@ -32,7 +31,7 @@ class TicTacToePlayer(Player):
 class TicTacToeCell(Object):
     """Represents a cell in the TicTacToe grid."""
 
-    def __init__(self, position: Position, value: str = " "):
+    def __init__(self, position: tuple[int, int], value: str = " "):
         symbol = "❎" if value == "X" else "🅾️" if value == "O" else "⬜️"
         pretty_symbol = "❎" if value == "X" else "🅾️" if value == "O" else "⬜️"
         super().__init__(
@@ -61,9 +60,7 @@ class TicTacToeEnvironment(GridEnvironment):
                 cell = TicTacToeCell((i, j), "")
                 self.add_object(cell)
 
-    def reset(
-        self
-    ) -> None:
+    def reset(self) -> None:
         """Reset the game environment."""
         super().reset()
         self.current_player = 1
@@ -129,38 +126,26 @@ class TicTacToeEnvironment(GridEnvironment):
 
         return row_is_valid and col_is_valid and cell_is_empty
 
-    def check_game_state(self) -> None:
+    def check_won(self, player: Player) -> tuple[bool, bool]:
         """Check if the game is over (win or draw)."""
         board = self._get_board_from_grid()
         board_np = np.array(board)
 
-        self.state["success"] = True
-        self.state["aborted"] = False
-        self.state["terminated"] = False
-
         for i in range(3):
             if all(board_np[i, :] == "❎") or all(board_np[:, i] == "❎"):
-                self.state["terminated"] = True
-                self.state["success"] = True
-                return
+                return True, True
             if all(board_np[i, :] == "🅾️") or all(board_np[:, i] == "🅾️"):
-                self.state["terminated"] = True
-                self.state["success"] = True
-                return
+                return True, True
 
         if all(np.diag(board_np) == "❎") or all(np.diag(np.fliplr(board_np)) == "❎"):
-            self.state["terminated"] = True
-            self.state["success"] = True
-            return
+            return True, True
         if all(np.diag(board_np) == "🅾️") or all(np.diag(np.fliplr(board_np)) == "🅾️"):
-            self.state["terminated"] = True
-            self.state["success"] = True
-            return
+            return True, True
 
         if np.all(board_np != "⬜️"):
-            self.state["terminated"] = True
-            self.state["success"] = False
-            return
+            return True, False
+
+        return False, False
 
     def update_observations(self) -> None:
         """Update the observation for all players."""
@@ -202,7 +187,5 @@ class TicTacToeEnvironment(GridEnvironment):
         symbol = "X" if self.current_player == 1 else "O"
         new_cell = TicTacToeCell((row, col), value=symbol)
         self.add_object(new_cell)
-
-        self.check_game_state()
 
         self.current_player = 1 if self.current_player == 2 else 2

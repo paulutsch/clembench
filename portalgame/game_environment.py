@@ -164,22 +164,25 @@ class PortalGameEnvironment(GridEnvironment):
             self.state["player_positions"][player.name]
         )
 
-        if new_cell_objects != [] and isinstance(new_cell_objects[0], Portal):
-            self.state["terminated"] = True
-            self.state["success"] = True
-            self.state["aborted"] = False
-            return
-
-        self.state["aborted"] = False
-        self.state["terminated"] = False
-        self.state["success"] = True
-
         if new_cell_objects != [] and isinstance(new_cell_objects[0], Switch):
             new_cell_objects[0].activated = not new_cell_objects[0].activated
             for y in self.state["grid"]:
                 for cell in y:
                     if cell["objects"] != [] and isinstance(cell["objects"][0], Door):
                         cell["objects"][0].toggle_state()
+
+    def check_won(self, player: Player) -> Tuple[bool, bool]:
+        """
+        Check if the player has won.
+        """
+        new_cell_objects = self.get_objects_at(
+            self.state["player_positions"][player.name]
+        )
+
+        if new_cell_objects != [] and isinstance(new_cell_objects[0], Portal):
+            return True, True
+
+        return False, False
 
     def _is_action_valid_in_state(
         self, player: Player, action: PortalAction
