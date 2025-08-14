@@ -285,7 +285,7 @@ class PortalGameEnvironment(GridEnvironment):
 
         return {
             "player_positions": self.state["player_positions"],
-            "grid": self.render_state(),
+            "grid": self._render_state_as_human_readable(),
             "terminated": self.state["terminated"],
             "success": self.state["success"],
             "aborted": self.state["aborted"],
