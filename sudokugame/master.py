@@ -34,7 +34,6 @@ class SudokuGame(EnvGameMaster):
             game_instance: Game instance parameters from instances.json
         """
         self.game_environment = SudokuEnvironment(game_instance)
-        self.game_environment.config = game_instance
 
         self.player = SudokuPlayer(self.player_models[0])
         self.add_player(self.player)

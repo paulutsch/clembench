@@ -220,7 +220,7 @@ class SudokuEnvironment(GridEnvironment):
         """Render state as human readable."""
         return self._render_state_as_string()
 
-    def state_to_log(self):
+    def info(self):
         """Log the current state of the environment to the game master."""
         return {
             "grid": self._render_state_as_human_readable(),

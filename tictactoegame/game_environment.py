@@ -151,6 +151,8 @@ class TicTacToeEnvironment(GridEnvironment):
         """Update the observation for all players."""
         for player in self.players:
             rendered_state = self.render_state()
+            board = self._get_board_from_grid()
+            non_empty_cells = sum(1 for row in board for cell in row if cell != "⬜️")
 
             if self.state["warning"]:
                 warning = "Warning: " + self.state["warning"]
@@ -158,20 +160,23 @@ class TicTacToeEnvironment(GridEnvironment):
                 warning = ""
 
             text_content = (
-                (
-                    self.config.get("prompt", "")
-                    + "\n\n"
-                    + f"You are the player that plays {player.symbol}.\n\n"
+                f"{warning}\n"
+                if warning
+                else (
+                    (
+                        self.config.get("prompt", "")
+                        + "\n\n"
+                        + f"You are the player that plays {player.symbol}.\n\n"
+                    )
+                    if non_empty_cells < 2
+                    else ""
                 )
-                if self.state["moves"] < 2
-                else "" + (f"{warning}\n" if warning else "") + "The board is:\n\n"
-            )
+            ) + "The board is:\n\n"
 
             observation = self._create_observation(text_content, rendered_state)
-
-            self.state["warning"] = ""
-
             self.observations[player.name] = observation
+
+        self.state["warning"] = ""
 
     def _update_state_through_action(
         self, player: TicTacToePlayer, action: TicTacToeAction

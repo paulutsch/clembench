@@ -109,8 +109,8 @@ class PortalGameScorer(GameScorer):
     def compute_round_score(self, round_idx, round_events):
         self.log_round_score(
             round_idx,
-            "Distance to Portal",
-            round_events[-1]["action"]["content"]["distance_to_portal"],
+            "Reward",
+            round_events[-1]["action"]["content"],
         )
 
     def compute_episode_scores(self, interactions: Dict) -> None:
@@ -127,11 +127,6 @@ class PortalGameScorer(GameScorer):
         moves = sum(interactions["Request Count"])
         efficiency = shortest_path / moves
 
-        average_distance_to_portal = sum(
-            e[-1]["action"]["content"]["distance_to_portal"]
-            for e in interactions["turns"]
-        ) / len(interactions["turns"])
-
         if aborted or lose:
             bench_score = 0.0
         else:
@@ -141,7 +136,6 @@ class PortalGameScorer(GameScorer):
             bench_score = bench_score - (50 * (1 - efficiency))
 
         self.log_episode_score("Efficiency", efficiency)
-        self.log_episode_score("Average Distance to Portal", average_distance_to_portal)
         self.log_episode_score(BENCH_SCORE, bench_score)
 
 

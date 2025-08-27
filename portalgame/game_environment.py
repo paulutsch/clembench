@@ -41,30 +41,13 @@ class PortalGameEnvironment(GridEnvironment):
         super().__init__(config=config)
         self.observations: Dict[str, Observation] = {}
         self.action_spaces: Dict[str, ActionSpace] = {}
-        self.base_prompt = ""
         self.config = config or {}
         self.explored: Dict[str, List[List[bool]]] = {}
         self.state: PortalGameState
-        self.max_moves: int
 
     def reset(self) -> None:
         """Reset the game environment."""
         super().reset()
-        self.state = PortalGameState(
-            grid=[
-                [GridCell(objects=[], position=(i, j)) for j in range(self.width)]
-                for i in range(self.height)
-            ],
-            player_positions={
-                self.players[0].name: self.config["grid"]["player_start"]
-            },
-            success=False,
-            terminated=False,
-            aborted=False,
-            moves=0,
-            warning="",
-        )
-        self.max_moves = self.config["max_moves"]
 
         self._construct_grid()
 
@@ -79,23 +62,10 @@ class PortalGameEnvironment(GridEnvironment):
                 player.name, self.state["player_positions"][player.name]
             )
 
-        self.base_prompt = self.config["prompt"]
+        self.update_observations()
 
-        rendered_state = self.render_state(self.players[0].name)
-
-        text_content = (
-            self.base_prompt + "\n\n" + "You initially see the following grid layout:\n"
-        )
-
-        observation = self._create_observation(text_content, rendered_state)
-
-        initial_observations: Dict[str, Observation] = {
-            self.players[0].name: observation,
-        }
-        initial_action_spaces: Dict[str, ActionSpace] = {self.players[0].name: ["move"]}
-
-        self.observations = initial_observations
-        self.action_spaces = initial_action_spaces
+        for player in self.players:
+            self.set_action_space(player, ["move"])
 
     def _construct_grid(self) -> None:
         """Construct the game grid based on the config."""
@@ -249,29 +219,34 @@ class PortalGameEnvironment(GridEnvironment):
             else:
                 warning = ""
 
-            text_content = (
-                (f"{warning}\n" if warning else "")
-                + f"Current position: {player_pos}\n"
-                + (
-                    f"Switch active: {switch_state}\n"
-                    if switch_state is not None
-                    else ""
+            if self.state["moves"] == 0:
+                text_content = (
+                    self.config.get("prompt", "")
+                ) + "\n\nYou initially see the following grid layout:\n"
+            else:
+                text_content = (
+                    (f"{warning}\n" if warning else "")
+                    + f"Current position: {player_pos}\n"
+                    + (
+                        f"Switch active: {switch_state}\n"
+                        if switch_state is not None
+                        else ""
+                    )
+                    + (
+                        f"Door state: {'open' if door_state else 'closed'}\n"
+                        if door_state is not None
+                        else ""
+                    )
+                    + f"\nGrid (Visible Area):\n"
                 )
-                + (
-                    f"Door state: {'open' if door_state else 'closed'}\n"
-                    if door_state is not None
-                    else ""
-                )
-                + f"\nGrid (Visible Area):\n"
-            )
 
             observation = self._create_observation(text_content, rendered_state)
 
-            self.state["warning"] = ""
-
             self.observations[player.name] = observation
 
-    def state_to_log(self):
+        self.state["warning"] = ""
+
+    def info(self):
         """Log the current state of the environment to the game master."""
         distance_to_portal = 0
         for row in self.state["grid"]:
