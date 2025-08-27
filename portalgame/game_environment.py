@@ -59,7 +59,7 @@ class PortalGameEnvironment(GridEnvironment):
         }
         for player in self.players:
             self._mark_explored(
-                player.name, self.state["player_positions"][player.name]
+                player.name, self.state["_player_positions"][player.name]
             )
 
         self.update_observations()
@@ -96,7 +96,7 @@ class PortalGameEnvironment(GridEnvironment):
         player_start = grid_config.get("player_start", (0, 0))
         self.add_object(PlayerObject(position=player_start, player=self.players[0]))
 
-        self.state["player_positions"][self.players[0].name] = tuple(player_start)
+        self.state["_player_positions"][self.players[0].name] = tuple(player_start)
 
     def _mark_explored(self, player_name: str, pos: Tuple[int, int]) -> None:
         """Mark cells around a position as explored for the given player."""
@@ -112,31 +112,31 @@ class PortalGameEnvironment(GridEnvironment):
         """Update the game state based on the action."""
         direction = action.get("direction")
 
-        y, x = self.state["player_positions"][player.name]
+        y, x = self.state["_player_positions"][player.name]
         current_cell = self.get_objects_at((y, x))
         player_object = current_cell[-1]
         self.remove_object(player_object)
 
         if direction == "n":
-            self.state["player_positions"][player.name] = (y - 1, x)
+            self.state["_player_positions"][player.name] = (y - 1, x)
         elif direction == "s":
-            self.state["player_positions"][player.name] = (y + 1, x)
+            self.state["_player_positions"][player.name] = (y + 1, x)
         elif direction == "e":
-            self.state["player_positions"][player.name] = (y, x + 1)
+            self.state["_player_positions"][player.name] = (y, x + 1)
         elif direction == "w":
-            self.state["player_positions"][player.name] = (y, x - 1)
+            self.state["_player_positions"][player.name] = (y, x - 1)
 
-        player_object.position = self.state["player_positions"][player.name]
+        player_object.position = self.state["_player_positions"][player.name]
         self.add_object(player_object)
-        self._mark_explored(player.name, self.state["player_positions"][player.name])
+        self._mark_explored(player.name, self.state["_player_positions"][player.name])
 
         new_cell_objects = self.get_objects_at(
-            self.state["player_positions"][player.name]
+            self.state["_player_positions"][player.name]
         )
 
         if new_cell_objects != [] and isinstance(new_cell_objects[0], Switch):
             new_cell_objects[0].activated = not new_cell_objects[0].activated
-            for y in self.state["grid"]:
+            for y in self.state["_grid"]:
                 for cell in y:
                     if cell["objects"] != [] and isinstance(cell["objects"][0], Door):
                         cell["objects"][0].toggle_state()
@@ -146,7 +146,7 @@ class PortalGameEnvironment(GridEnvironment):
         Check if the player has won.
         """
         new_cell_objects = self.get_objects_at(
-            self.state["player_positions"][player.name]
+            self.state["_player_positions"][player.name]
         )
 
         if new_cell_objects != [] and isinstance(new_cell_objects[0], Portal):
@@ -160,7 +160,7 @@ class PortalGameEnvironment(GridEnvironment):
         # action_type is already checked in the base class — need to only check the direction
         direction = action.get("direction")
         """Check if a move is valid."""
-        y, x = self.state["player_positions"][player.name]
+        y, x = self.state["_player_positions"][player.name]
         if direction == "n":
             new_pos = (y - 1, x)
         elif direction == "s":
@@ -181,7 +181,7 @@ class PortalGameEnvironment(GridEnvironment):
             )
 
         # check if the new position is a wall or closed door
-        cell = self.state["grid"][new_y][new_x]
+        cell = self.state["_grid"][new_y][new_x]
         if cell["objects"] != [] and isinstance(cell["objects"][0], Wall):
             return (
                 False,
@@ -202,12 +202,12 @@ class PortalGameEnvironment(GridEnvironment):
     def update_observations(self) -> None:
         """Update the observation for all players."""
         for player in self.players:
-            player_pos = self.state["player_positions"][player.name]
+            player_pos = self.state["_player_positions"][player.name]
             rendered_state = self.render_state(player.name)
 
             switch_state = None
             door_state = None
-            for row in self.state["grid"]:
+            for row in self.state["_grid"]:
                 for cell in row:
                     if cell["objects"] != [] and isinstance(cell["objects"][0], Switch):
                         switch_state = cell["objects"][0].activated
@@ -245,27 +245,3 @@ class PortalGameEnvironment(GridEnvironment):
             self.observations[player.name] = observation
 
         self.state["warning"] = ""
-
-    def info(self):
-        """Log the current state of the environment to the game master."""
-        distance_to_portal = 0
-        for row in self.state["grid"]:
-            for cell in row:
-                if cell["objects"] != [] and isinstance(cell["objects"][0], Portal):
-                    distance_to_portal = abs(
-                        cell["position"][0]
-                        - self.state["player_positions"][self.players[0].name][0]
-                    ) + abs(
-                        cell["position"][1]
-                        - self.state["player_positions"][self.players[0].name][1]
-                    )
-                    break
-
-        return {
-            "player_positions": self.state["player_positions"],
-            "grid": self._render_state_as_human_readable(),
-            "terminated": self.state["terminated"],
-            "success": self.state["success"],
-            "aborted": self.state["aborted"],
-            "distance_to_portal": distance_to_portal,
-        }
