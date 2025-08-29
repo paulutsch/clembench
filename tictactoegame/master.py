@@ -38,13 +38,8 @@ class TicTacToeGame(EnvGameMaster):
         """
         self.game_environment = TicTacToeEnvironment(game_instance)
 
-        self.player_x = TicTacToePlayer(self.player_models[0])
-        self.player_o = TicTacToePlayer(self.player_models[1])
-        self.player_x.symbol = "X"
-        self.player_o.symbol = "O"
-
-        self.add_player(self.player_x)
-        self.add_player(self.player_o)
+        for player in self.player_models:
+            self.add_player(TicTacToePlayer(player))
 
         self.game_environment.reset()
 

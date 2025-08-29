@@ -1,3 +1,4 @@
+import random
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -19,7 +20,11 @@ class SudokuPlayer(Player):
         super().__init__(model)
 
     def _custom_response(self, context: Dict) -> str:
-        return "Hello, world!"
+        i = random.randint(0, 8)
+        j = random.randint(0, 8)
+        number = random.randint(0, 8)
+
+        return f"{i} {j} {number}"
 
 
 class SudokuAction(Action):

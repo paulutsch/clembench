@@ -35,8 +35,8 @@ class SudokuGame(EnvGameMaster):
         """
         self.game_environment = SudokuEnvironment(game_instance)
 
-        self.player = SudokuPlayer(self.player_models[0])
-        self.add_player(self.player)
+        for player in self.player_models:
+            self.add_player(SudokuPlayer(player))
 
         self.game_environment.reset()
 

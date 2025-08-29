@@ -44,8 +44,8 @@ class PortalGame(EnvGameMaster):
         """
         self.game_environment = PortalGameEnvironment(config=game_instance)
 
-        self.player = PortalPlayer(self.player_models[0])
-        self.add_player(self.player)
+        for player in self.player_models:
+            self.add_player(PortalPlayer(player))
 
         self.game_environment.reset()
 
