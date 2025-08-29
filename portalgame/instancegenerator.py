@@ -15,6 +15,7 @@ from clemcore.clemgame import GameInstanceGenerator
 LANGUAGE = "en"
 RENDER_AS = "image"
 LIMITED_VISIBILITY = True
+SHOW_EXPLORED = True
 WIDTH = 10
 HEIGHT = 10
 WALL_FRACTION = 0.2
@@ -58,6 +59,7 @@ class PortalGameInstanceGenerator(GameInstanceGenerator):
         limited_visibility: bool = bool(
             kwargs.get("limited_visibility", LIMITED_VISIBILITY)
         )
+        show_explored: bool = bool(kwargs.get("show_explored", SHOW_EXPLORED))
         render_as: str = str(kwargs.get("render_as", RENDER_AS))
 
         def border_walls(width: int, height: int) -> List[Tuple[int, int]]:
@@ -212,13 +214,14 @@ class PortalGameInstanceGenerator(GameInstanceGenerator):
                 "max_moves": max_moves,
                 "shortest_path": shortest_path_with_switch,
                 "limited_visibility": limited_visibility,
+                "show_explored": show_explored,
                 "render_as": render_as,
                 "grid": {
                     "walls": walls,
                     "portal": portal,
                     "switch": switch,
                     "door": door,
-                    "player_start": player_start,
+                    "players_start": [player_start],
                 },
             }
 
