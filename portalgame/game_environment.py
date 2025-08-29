@@ -1,15 +1,6 @@
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Literal, Tuple
 
-from clemcore.clemgame import (
-    Action,
-    ActionSpace,
-    GridCell,
-    GridEnvironment,
-    GridState,
-    Observation,
-    Player,
-    PlayerObject,
-)
+from clemcore.clemgame import Action, InclusiveGridEnvironment, Player
 
 from portalgame.objects import Door, Portal, Switch, Wall
 
@@ -21,25 +12,11 @@ class PortalAction(Action):
     direction: str  # 'n', 's', 'e', 'w'
 
 
-class PortalGameState(GridState):
-    """State for the Portal game."""
-
-    moves: int
-    success: bool
-    terminated: bool
-    aborted: bool
-    warning: str
-
-
-class PortalGameEnvironment(GridEnvironment):
+class PortalGameEnvironment(InclusiveGridEnvironment):
     """Environment for the Portal game."""
 
-    def __init__(
-        self,
-        config: Optional[Dict] = None,
-    ):
+    def __init__(self, config: Dict):
         super().__init__(config=config)
-        self.state: PortalGameState
 
     def reset(self) -> None:
         """Reset the game environment."""
@@ -109,7 +86,7 @@ class PortalGameEnvironment(GridEnvironment):
         self, player: Player, action: PortalAction
     ) -> Tuple[bool, str]:
         """Check if a move is valid."""
-        direction = action.get("direction")
+        direction: Literal["n", "s", "e", "w"] = action.get("direction")  # type: ignore
         valid, reason = super()._is_action_valid_in_state(player, direction)
         if not valid:
             return valid, reason

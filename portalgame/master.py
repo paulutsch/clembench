@@ -1,3 +1,4 @@
+import random
 import re
 from typing import Dict, List
 
@@ -21,7 +22,8 @@ class PortalPlayer(Player):
 
     def _custom_response(self, context: Dict) -> str:
         """Custom response for the player."""
-        return ""
+        direction = random.choice(["n", "s", "e", "w"])
+        return f"DIRECTION: {direction}"
 
 
 class PortalGame(EnvGameMaster):
