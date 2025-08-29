@@ -54,25 +54,19 @@ class SudokuEnvironment(GridEnvironment):
         config: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(config=config)
-        self.grid_size = self.config.get("width", 9)
 
-        puzzle = Sudoku(self.grid_size // 3).difficulty(
-            self.config.get("difficulty", 0.5)
-        )
+        puzzle = Sudoku(self.width // 3).difficulty(self.config.get("difficulty", 0.5))
         original_grid = puzzle.board
         self.original_grid = [
             [0 if cell is None else cell for cell in row] for row in original_grid
         ]
 
-        self.observations: Dict[str, Observation] = {}
-        self.action_spaces: Dict[str, ActionSpace] = {}
-
         self._initialize_grid()
 
     def _initialize_grid(self):
         """Initialize the grid with Sudoku objects."""
-        for i in range(self.grid_size):
-            for j in range(self.grid_size):
+        for i in range(self.width):
+            for j in range(self.height):
                 value = self.original_grid[i][j]
                 object = SudokuObject((i, j), value)
                 self.add_object(object)
@@ -86,46 +80,28 @@ class SudokuEnvironment(GridEnvironment):
         for player in self.players:
             self.set_action_space(player, ["fill_cell"])
 
-    def _get_board_from_grid(self) -> List[List[int]]:
-        """Extract grid state."""
-        grid = [[0 for _ in range(self.grid_size)] for _ in range(self.grid_size)]
-        for i in range(self.grid_size):
-            for j in range(self.grid_size):
-                objects = self.get_objects_at((i, j))
-                if objects:
-                    object = objects[0]
-                    if isinstance(object, SudokuObject):
-                        grid[i][j] = int(object.symbol)
-        return grid
-
-    def _is_grid_valid(
-        self, grid: List[List[int]], row: int, col: int, value: int
-    ) -> bool:
-        if grid[row][col] != 0:
+    def _is_grid_valid(self, row: int, col: int, value: int) -> bool:
+        object = self.get_objects_at((row, col))[0]
+        if object.symbol != "0":
             return False
 
-        # Convert to numpy for easier array operations
-        grid_np = np.array(grid)
-        if value in grid_np[row] or value in grid_np[:, col]:
-            return False
+        for i in range(self.height):
+            object = self.get_objects_at((i, col))[0]
+            if object.symbol == str(value):
+                return False
+
+        for j in range(self.width):
+            object = self.get_objects_at((row, j))[0]
+            if object.symbol == str(value):
+                return False
 
         block_size = 3
         block_row = (row // block_size) * block_size
         block_col = (col // block_size) * block_size
-        if (
-            value
-            in grid_np[
-                block_row : block_row + block_size, block_col : block_col + block_size
-            ]
-        ):
-            return False
-
-        return True
-
-    def _is_grid_solved(self, grid: List[List[int]]) -> bool:
-        for i in range(self.grid_size):
-            for j in range(self.grid_size):
-                if grid[i][j] == 0:
+        for i in range(block_row, block_row + block_size):
+            for j in range(block_col, block_col + block_size):
+                object = self.get_objects_at((i, j))[0]
+                if object.symbol == str(value):
                     return False
 
         return True
@@ -141,8 +117,7 @@ class SudokuEnvironment(GridEnvironment):
         if row is None or col is None or value is None:
             return False, "Missing row, col, or value in action"
 
-        board = self._get_board_from_grid()
-        if self._is_grid_valid(board, row, col, value):
+        if self._is_grid_valid(row, col, value):
             return True, ""
         else:
             return (
@@ -169,9 +144,13 @@ class SudokuEnvironment(GridEnvironment):
         """
         Check if the player has won.
         """
-        board = self._get_board_from_grid()
-        won = self._is_grid_solved(board)
-        return won, True
+        for i in range(self.width):
+            for j in range(self.height):
+                object = self.get_objects_at((i, j))[0]
+                if object.symbol == "0":
+                    return False, True
+
+        return True, True
 
     def update_observations(self) -> None:
         """Update the observation for all players."""
@@ -195,19 +174,20 @@ class SudokuEnvironment(GridEnvironment):
 
             self.observations[player.name] = observation
 
-    def _render_state_as_string(self, player_name: str | None = None) -> str:
+    def _render_state_as_string(self, player_name: Optional[str] = None) -> str:
         """Render state as string."""
-        board = self._get_board_from_grid()
-        board_size = self.grid_size
-        box_size = int(self.grid_size / 3)
+        board_size = self.width
+        box_size = int(self.width / 3)
 
         output = []
 
         for i in range(board_size):
             row = []
             for j in range(board_size):
-                val = str(board[i][j])
+                object = self.get_objects_at((i, j))[0]
+                val = object.symbol
                 row.append(val)
+
                 if (j + 1) % box_size == 0 and j < board_size - 1:
                     row.append("|")
             output.append("".join(row))
@@ -217,11 +197,11 @@ class SudokuEnvironment(GridEnvironment):
 
         return "\n".join(output)
 
-    def _render_state_as_image(self, player_name: str | None = None) -> bytes:
+    def _render_state_as_image(self, player_name: Optional[str] = None) -> bytes:
         """Render state as image (not implemented for Sudoku)."""
         return b""
 
-    def _render_state_as_human_readable(self, player_name: str | None = None) -> str:
+    def _render_state_as_human_readable(self, player_name: Optional[str] = None) -> str:
         """Render state as human readable."""
         return self._render_state_as_string()
 
