@@ -80,7 +80,7 @@ class PortalGameEnvironment(InclusiveGridEnvironment):
         if new_cell_objects != [] and isinstance(new_cell_objects[0], Portal):
             return True, True
 
-        return False, False
+        return False, True
 
     def _is_action_valid_in_state(
         self, player: Player, action: PortalAction
