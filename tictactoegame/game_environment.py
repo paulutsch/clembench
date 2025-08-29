@@ -45,10 +45,8 @@ class TicTacToeCell(Object):
 class TicTacToeEnvironment(GridEnvironment):
     """Environment for the TicTacToe game."""
 
-    def __init__(self, config: Optional[Dict] = None):
+    def __init__(self, config: Dict):
         super().__init__(config=config)
-
-        self.players: List[TicTacToePlayer] = []
 
     def reset(self) -> None:
         """Reset the game environment."""

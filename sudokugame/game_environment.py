@@ -49,10 +49,7 @@ class SudokuObject(Object):
 
 class SudokuEnvironment(GridEnvironment):
 
-    def __init__(
-        self,
-        config: Optional[Dict[str, Any]] = None,
-    ):
+    def __init__(self, config: Dict):
         super().__init__(config=config)
 
         puzzle = Sudoku(self.width // 3).difficulty(self.config.get("difficulty", 0.5))
