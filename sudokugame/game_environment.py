@@ -72,20 +72,20 @@ class SudokuEnvironment(GridEnvironment):
             for j in range(self.height):
                 value = self.original_grid[i][j]
                 object = SudokuObject((i, j), value)
-                self.add_object(object)
+                self._add_object(object)
 
     def _is_grid_valid(self, row: int, col: int, value: int) -> bool:
-        object = self.get_objects_at((row, col))[0]
+        object = self._get_objects_at((row, col))[0]
         if object.symbol != "0":
             return False
 
         for i in range(self.height):
-            object = self.get_objects_at((i, col))[0]
+            object = self._get_objects_at((i, col))[0]
             if object.symbol == str(value):
                 return False
 
         for j in range(self.width):
-            object = self.get_objects_at((row, j))[0]
+            object = self._get_objects_at((row, j))[0]
             if object.symbol == str(value):
                 return False
 
@@ -94,13 +94,13 @@ class SudokuEnvironment(GridEnvironment):
         block_col = (col // block_size) * block_size
         for i in range(block_row, block_row + block_size):
             for j in range(block_col, block_col + block_size):
-                object = self.get_objects_at((i, j))[0]
+                object = self._get_objects_at((i, j))[0]
                 if object.symbol == str(value):
                     return False
 
         return True
 
-    def _is_action_valid_in_state(
+    def _action_valid_in_state(
         self, player: SudokuPlayer, action: SudokuAction
     ) -> tuple[bool, str]:
         """Check if an action is valid in the current state."""
@@ -127,12 +127,12 @@ class SudokuEnvironment(GridEnvironment):
         col = action["col"]
         value = action["value"]
 
-        objects = self.get_objects_at((row, col))
+        objects = self._get_objects_at((row, col))
         if objects:
-            self.remove_object(objects[0])
+            self._remove_object(objects[0])
 
         new_cell = SudokuObject((row, col), value)
-        self.add_object(new_cell)
+        self._add_object(new_cell)
 
     def _check_won(self, player: Player) -> Tuple[bool, bool]:
         """
@@ -140,7 +140,7 @@ class SudokuEnvironment(GridEnvironment):
         """
         for i in range(self.width):
             for j in range(self.height):
-                object = self.get_objects_at((i, j))[0]
+                object = self._get_objects_at((i, j))[0]
                 if object.symbol == "0":
                     return False, True
 
@@ -178,7 +178,7 @@ class SudokuEnvironment(GridEnvironment):
         for i in range(board_size):
             row = []
             for j in range(board_size):
-                object = self.get_objects_at((i, j))[0]
+                object = self._get_objects_at((i, j))[0]
                 val = object.symbol
                 row.append(val)
 
@@ -187,7 +187,7 @@ class SudokuEnvironment(GridEnvironment):
             output.append("".join(row))
 
             if (i + 1) % box_size == 0 and i < board_size - 1:
-                output.append("-" * (board_size * 2 + 2))
+                output.append("-" * (board_size + 2))
 
         return "\n".join(output)
 

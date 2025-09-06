@@ -12,7 +12,7 @@
                     "max_moves": 6,
                     "shortest_path": 6,
                     "limited_visibility": true,
-                    "render_as": "human-readable",
+                    "render_as": "image",
                     "show_explored": true,
                     "grid": {
                         "walls": [

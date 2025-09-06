@@ -126,7 +126,7 @@ class HelloGameEnvironment(GameEnvironment):
 
         self.state["missing_words"] = missing_words
 
-    def _is_action_valid_in_state(
+    def _action_valid_in_state(
         self, player: Player, action: HelloGameAction
     ) -> tuple[bool, str]:
         """Check if action is valid in current state."""

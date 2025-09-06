@@ -57,7 +57,7 @@ class TicTacToeEnvironment(GridEnvironment):
         for player in self.players:
             self._set_action_space(player, ["make_move"])
 
-    def _is_action_valid_in_state(
+    def _action_valid_in_state(
         self, player: TicTacToePlayer, action: TicTacToeAction
     ) -> tuple[bool, str]:
         """Check if an action is valid in the current state."""
@@ -70,7 +70,7 @@ class TicTacToeEnvironment(GridEnvironment):
         if not (0 <= row < 3 and 0 <= col < 3):
             return False, f"Position ({row}, {col}) is out of bounds"
 
-        if self.get_objects_at((row, col)) != []:
+        if self._get_objects_at((row, col)) != []:
             return False, f"Position ({row}, {col}) is already occupied"
 
         return True, ""
@@ -80,8 +80,8 @@ class TicTacToeEnvironment(GridEnvironment):
         board_np = np.array([["empty" for _ in range(3)] for _ in range(3)])
         for i in range(self.height):
             for j in range(self.width):
-                if self.get_objects_at((i, j)) != []:
-                    symbol = self.get_objects_at((i, j))[0].symbol
+                if self._get_objects_at((i, j)) != []:
+                    symbol = self._get_objects_at((i, j))[0].symbol
                     board_np[i, j] = symbol
 
         for i in range(3):
@@ -151,10 +151,10 @@ class TicTacToeEnvironment(GridEnvironment):
         row = action["row"]
         col = action["col"]
 
-        objects = self.get_objects_at((row, col))
+        objects = self._get_objects_at((row, col))
         if objects:
-            self.remove_object(objects[0])
+            self._remove_object(objects[0])
 
         current_symbol = self._get_current_symbol()
         new_cell = TicTacToeCell((row, col), value=current_symbol)
-        self.add_object(new_cell)
+        self._add_object(new_cell)

@@ -38,31 +38,31 @@ class PortalGameEnvironment(InclusiveGridEnvironment):
 
         for wall_pos in grid_config.get("walls", []):
             row, col = wall_pos
-            self.add_object(Wall(position=(row, col)))
+            self._add_object(Wall(position=(row, col)))
 
         portal_pos = grid_config.get("portal")
         if portal_pos:
             row, col = portal_pos
-            self.add_object(Portal(position=(row, col)))
+            self._add_object(Portal(position=(row, col)))
 
         switch_pos = grid_config.get("switch")
         if switch_pos:
             row, col = switch_pos
-            self.add_object(Switch(position=(row, col)))
+            self._add_object(Switch(position=(row, col)))
 
         door_pos = grid_config.get("door")
         if door_pos:
             row, col = door_pos
-            self.add_object(Door(position=(row, col)))
+            self._add_object(Door(position=(row, col)))
 
     def _update_state_through_action(
         self, player: Player, action: PortalAction
     ) -> None:
         """Update the game state based on the action."""
         direction = action.get("direction")
-        self.move_player(player.name, direction)
+        self._move_player(player.name, direction)
 
-        new_cell_objects = self.get_objects_at(self.get_player_position(player.name))
+        new_cell_objects = self._get_objects_at(self._get_player_position(player.name))
 
         if new_cell_objects != [] and isinstance(new_cell_objects[0], Switch):
             for y in self.state["_grid"]:
@@ -74,23 +74,23 @@ class PortalGameEnvironment(InclusiveGridEnvironment):
         """
         Check if the player has won.
         """
-        new_cell_objects = self.get_objects_at(self.get_player_position(player.name))
+        new_cell_objects = self._get_objects_at(self._get_player_position(player.name))
 
         if new_cell_objects != [] and isinstance(new_cell_objects[0], Portal):
             return True, True
 
         return False, True
 
-    def _is_action_valid_in_state(
+    def _action_valid_in_state(
         self, player: Player, action: PortalAction
     ) -> Tuple[bool, str]:
         """Check if a move is valid."""
         direction: Literal["n", "s", "e", "w"] = action.get("direction")  # type: ignore
-        valid, reason = super()._is_action_valid_in_state(player, direction)
+        valid, reason = super()._action_valid_in_state(player, direction)
         if not valid:
             return valid, reason
 
-        y, x = self.get_player_position(player.name)
+        y, x = self._get_player_position(player.name)
         new_y = y - 1 if direction == "n" else y + 1 if direction == "s" else y
         new_x = x + 1 if direction == "e" else x - 1 if direction == "w" else x
 
@@ -117,7 +117,7 @@ class PortalGameEnvironment(InclusiveGridEnvironment):
         """Update the observation for all players."""
         for player in self.players:
             rendered_state = self._render_state(player.name)
-            player_pos = self.get_player_position(player.name)
+            player_pos = self._get_player_position(player.name)
 
             door_state = None
             for row in self.state["_grid"]:
