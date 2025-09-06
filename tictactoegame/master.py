@@ -1,5 +1,6 @@
 from typing import Dict, List, Optional, Tuple
 
+import numpy as np
 from clemcore.backends import Model
 from clemcore.clemgame import (
     ActionSpace,
@@ -43,7 +44,7 @@ class TicTacToeGame(EnvGameMaster):
 
         self.game_environment.reset()
 
-    def _player_response_in_expected_format(
+    def _response_valid(
         self, player: TicTacToePlayer, utterance: str
     ) -> bool:
         """
@@ -79,32 +80,6 @@ class TicTacToeGame(EnvGameMaster):
         }
         return action
 
-    def compute_turn_score(self) -> float:
-        """
-        Compute a score for the player's response based on the environment state.
-
-        Args:
-            response: The player's response
-            context: Additional context for scoring
-
-        Returns:
-            float: The score for the response
-        """
-        score = 1.0 if self.game_environment.state["success"] else 0.0
-        return score
-
-    def compute_episode_score(self) -> float:
-        """
-        Compute the overall episode score.
-
-        Returns:
-            float: The episode score
-        """
-        success = self.game_environment.state["success"]
-        not_aborted = not self.game_environment.state["aborted"]
-
-        return (not_aborted + success) / 2
-
 
 class TicTacToeGameScorer(GameScorer):
     """Scorer for the TicTacToe game."""
@@ -122,7 +97,7 @@ class TicTacToeGameScorer(GameScorer):
         success = interactions.get(METRIC_SUCCESS, False)
 
         if aborted:
-            bench_score = 0.0
+            bench_score = np.nan
         else:
             bench_score = 100.0 if success else 0.0
 

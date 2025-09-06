@@ -24,10 +24,10 @@ class PortalGameEnvironment(InclusiveGridEnvironment):
 
         self._populate_portal_grid()
 
-        self.update_observations()
+        self._update_observations()
 
         for player in self.players:
-            self.set_action_space(player, ["move"])
+            self._set_action_space(player, ["move"])
 
     def _populate_portal_grid(self) -> None:
         """Construct the game grid based on the config."""
@@ -65,13 +65,12 @@ class PortalGameEnvironment(InclusiveGridEnvironment):
         new_cell_objects = self.get_objects_at(self.get_player_position(player.name))
 
         if new_cell_objects != [] and isinstance(new_cell_objects[0], Switch):
-            new_cell_objects[0].activated = not new_cell_objects[0].activated
             for y in self.state["_grid"]:
                 for cell in y:
                     if cell["objects"] != [] and isinstance(cell["objects"][0], Door):
                         cell["objects"][0].toggle_state()
 
-    def check_won(self, player: Player) -> Tuple[bool, bool]:
+    def _check_won(self, player: Player) -> Tuple[bool, bool]:
         """
         Check if the player has won.
         """
@@ -114,23 +113,20 @@ class PortalGameEnvironment(InclusiveGridEnvironment):
 
         return True, ""
 
-    def update_observations(self) -> None:
+    def _update_observations(self) -> None:
         """Update the observation for all players."""
         for player in self.players:
+            rendered_state = self._render_state(player.name)
             player_pos = self.get_player_position(player.name)
-            rendered_state = self.render_state(player.name)
 
-            switch_state = None
             door_state = None
             for row in self.state["_grid"]:
                 for cell in row:
-                    if cell["objects"] != [] and isinstance(cell["objects"][0], Switch):
-                        switch_state = cell["objects"][0].activated
-                    elif cell["objects"] != [] and isinstance(cell["objects"][0], Door):
+                    if cell["objects"] != [] and isinstance(cell["objects"][0], Door):
                         door_state = cell["objects"][0].is_open
 
-            if self.state["warning"]:
-                warning = "Warning: " + self.state["warning"]
+            if self.state["_warning"]:
+                warning = "Warning: " + self.state["_warning"]
             else:
                 warning = ""
 
@@ -143,11 +139,6 @@ class PortalGameEnvironment(InclusiveGridEnvironment):
                     (f"{warning}\n" if warning else "")
                     + f"Current position: {player_pos}\n"
                     + (
-                        f"Switch active: {switch_state}\n"
-                        if switch_state is not None
-                        else ""
-                    )
-                    + (
                         f"Door state: {'open' if door_state else 'closed'}\n"
                         if door_state is not None
                         else ""
@@ -159,4 +150,4 @@ class PortalGameEnvironment(InclusiveGridEnvironment):
 
             self.observations[player.name] = observation
 
-        self.state["warning"] = ""
+        self.state["_warning"] = ""

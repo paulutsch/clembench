@@ -52,10 +52,10 @@ class TicTacToeEnvironment(GridEnvironment):
         """Reset the game environment."""
         super().reset()
 
-        self.update_observations()
+        self._update_observations()
 
         for player in self.players:
-            self.set_action_space(player, ["make_move"])
+            self._set_action_space(player, ["make_move"])
 
     def _is_action_valid_in_state(
         self, player: TicTacToePlayer, action: TicTacToeAction
@@ -75,19 +75,7 @@ class TicTacToeEnvironment(GridEnvironment):
 
         return True, ""
 
-    def is_valid_move(self, row: int | None, col: int | None) -> bool:
-        """Check if a move is valid."""
-        if row is None or col is None:
-            return False
-
-        row_is_valid = 0 <= row < 3
-        col_is_valid = 0 <= col < 3
-
-        cell_is_empty = self.get_objects_at((row, col)) == []
-
-        return row_is_valid and col_is_valid and cell_is_empty
-
-    def check_won(self, player: Player) -> tuple[bool, bool]:
+    def _check_won(self, player: Player) -> tuple[bool, bool]:
         """Check if the game is over (win or draw)."""
         board_np = np.array([["empty" for _ in range(3)] for _ in range(3)])
         for i in range(self.height):
@@ -119,10 +107,10 @@ class TicTacToeEnvironment(GridEnvironment):
         )
         return "X" if (symbol_count + i) % 2 == 0 else "O"
 
-    def update_observations(self) -> None:
+    def _update_observations(self) -> None:
         """Update the observation for all players."""
         for i, player in enumerate(self.players):
-            rendered_state = self.render_state()
+            rendered_state = self._render_state()
             non_empty_cells = sum(
                 1
                 for row in self.state["_grid"]
@@ -130,8 +118,8 @@ class TicTacToeEnvironment(GridEnvironment):
                 if cell["objects"] != []
             )
 
-            if self.state["warning"]:
-                warning = "Warning: " + self.state["warning"]
+            if self.state["_warning"]:
+                warning = "Warning: " + self.state["_warning"]
             else:
                 warning = ""
 
@@ -154,7 +142,7 @@ class TicTacToeEnvironment(GridEnvironment):
             observation = self._create_observation(text_content, rendered_state)
             self.observations[player.name] = observation
 
-        self.state["warning"] = ""
+        self.state["_warning"] = ""
 
     def _update_state_through_action(
         self, player: TicTacToePlayer, action: TicTacToeAction

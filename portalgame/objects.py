@@ -30,8 +30,7 @@ class Door(Object):
 
 
 class Switch(Object):
-    """A switch that can be activated by stepping on it."""
+    """A switch that toggles the door's is_open state."""
 
     def __init__(self, position: Tuple[int, int]):
         super().__init__(position, "Switch", "S", "🔘")
-        self.activated = False

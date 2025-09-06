@@ -53,12 +53,18 @@ class SudokuEnvironment(GridEnvironment):
         super().__init__(config=config)
 
         puzzle = Sudoku(self.width // 3).difficulty(self.config.get("difficulty", 0.5))
-        original_grid = puzzle.board
         self.original_grid = [
-            [0 if cell is None else cell for cell in row] for row in original_grid
+            [0 if cell is None else cell for cell in row] for row in puzzle.board
         ]
 
+    def reset(self):
+        super().reset()
+
         self._initialize_grid()
+        self._update_observations()
+
+        for player in self.players:
+            self._set_action_space(player, ["fill_cell"])
 
     def _initialize_grid(self):
         """Initialize the grid with Sudoku objects."""
@@ -67,15 +73,6 @@ class SudokuEnvironment(GridEnvironment):
                 value = self.original_grid[i][j]
                 object = SudokuObject((i, j), value)
                 self.add_object(object)
-
-    def reset(self):
-        super().reset()
-
-        self._initialize_grid()
-        self.update_observations()
-
-        for player in self.players:
-            self.set_action_space(player, ["fill_cell"])
 
     def _is_grid_valid(self, row: int, col: int, value: int) -> bool:
         object = self.get_objects_at((row, col))[0]
@@ -137,7 +134,7 @@ class SudokuEnvironment(GridEnvironment):
         new_cell = SudokuObject((row, col), value)
         self.add_object(new_cell)
 
-    def check_won(self, player: Player) -> Tuple[bool, bool]:
+    def _check_won(self, player: Player) -> Tuple[bool, bool]:
         """
         Check if the player has won.
         """
@@ -149,13 +146,13 @@ class SudokuEnvironment(GridEnvironment):
 
         return True, True
 
-    def update_observations(self) -> None:
+    def _update_observations(self) -> None:
         """Update the observation for all players."""
         for player in self.players:
-            rendered_state = self.render_state()
+            rendered_state = self._render_state()
 
-            if self.state["warning"]:
-                warning = "Warning: " + self.state["warning"]
+            if self.state["_warning"]:
+                warning = "Warning: " + self.state["_warning"]
             else:
                 warning = ""
 
@@ -167,7 +164,7 @@ class SudokuEnvironment(GridEnvironment):
 
             observation = self._create_observation(text_content, rendered_state)
 
-            self.state["warning"] = ""
+            self.state["_warning"] = ""
 
             self.observations[player.name] = observation
 

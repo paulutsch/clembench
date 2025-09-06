@@ -2,6 +2,7 @@ import random
 import re
 from typing import Dict, List
 
+import numpy as np
 from clemcore.backends import Model
 from clemcore.clemgame import EnvGameMaster, GameBenchmark, GameScorer, GameSpec, Player
 from clemcore.clemgame.metrics import (
@@ -51,7 +52,7 @@ class PortalGame(EnvGameMaster):
 
         self.game_environment.reset()
 
-    def _player_response_in_expected_format(
+    def _response_valid(
         self, player: Player, utterance: str
     ) -> bool:
         """
@@ -121,7 +122,6 @@ class PortalGameScorer(GameScorer):
         Args:
             interactions: Dict containing the logged episode's interactions.
         """
-        lose = interactions.get(METRIC_LOSE, False)
         aborted = interactions.get(METRIC_ABORTED, False)
         success = interactions.get(METRIC_SUCCESS, False)
 
@@ -129,10 +129,12 @@ class PortalGameScorer(GameScorer):
         moves = sum(interactions["Request Count"])
         efficiency = shortest_path / moves
 
-        if aborted or lose:
+        if aborted:
+            bench_score = np.nan
+        elif not success:
             bench_score = 0.0
         else:
-            bench_score = 100.0 if success else 0.0
+            bench_score = 100.0
 
             # for example: the more efficient the player is, the higher the bench score
             bench_score = bench_score - (50 * (1 - efficiency))

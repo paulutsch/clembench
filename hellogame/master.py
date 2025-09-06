@@ -105,7 +105,7 @@ class HelloGame(EnvGameMaster):
         logger.info(f"[_compute_episode_score] Episode score: {score}")
         return score
 
-    def _player_response_in_expected_format(
+    def _response_valid(
         self, player: Player, response: str
     ) -> bool:
         """Check if player response is in expected format."""

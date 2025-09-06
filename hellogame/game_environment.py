@@ -68,7 +68,7 @@ class HelloGameEnvironment(GameEnvironment):
             "aborted": False,
             "terminated": False,
             "moves": 0,
-            "warning": "",
+            "_warning": "",
         }
 
         greeter_observation: Observation = {
