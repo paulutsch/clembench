@@ -108,9 +108,6 @@ class SudokuEnvironment(GridEnvironment):
         col = action.get("col")
         value = action.get("value")
 
-        if row is None or col is None or value is None:
-            return False, "Missing row, col, or value in action"
-
         if self._is_grid_valid(row, col, value):
             return True, ""
         else:
@@ -128,8 +125,7 @@ class SudokuEnvironment(GridEnvironment):
         value = action["value"]
 
         objects = self._get_objects_at((row, col))
-        if objects:
-            self._remove_object(objects[0])
+        self._remove_object(objects[0])
 
         new_cell = SudokuObject((row, col), value)
         self._add_object(new_cell)
@@ -198,12 +194,3 @@ class SudokuEnvironment(GridEnvironment):
     def _render_state_as_human_readable(self, player_name: Optional[str] = None) -> str:
         """Render state as human readable."""
         return self._render_state_as_string()
-
-    def info(self):
-        """Log the current state of the environment to the game master."""
-        return {
-            "grid": self._render_state_as_human_readable(),
-            "terminated": self.state["terminated"],
-            "success": self.state["success"],
-            "aborted": self.state["aborted"],
-        }

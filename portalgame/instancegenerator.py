@@ -13,11 +13,11 @@ from typing import Dict, List, Optional, Set, Tuple
 from clemcore.clemgame import GameInstanceGenerator
 
 LANGUAGE = "en"
-RENDER_AS = "image"
+RENDER_AS = "string"
 LIMITED_VISIBILITY = True
 SHOW_EXPLORED = True
-WIDTH = 10
-HEIGHT = 10
+WIDTH = 5
+HEIGHT = 5
 WALL_FRACTION = 0.2
 
 
@@ -41,6 +41,7 @@ class PortalGameInstanceGenerator(GameInstanceGenerator):
         prompt_text = (
             "You are playing the Portal Game, a maze navigation challenge where your goal is to reach the portal.\n\n"
             "Game Elements:\n\n"
+            "- Player (P): You. You can move around the grid.\n"
             "- Portal (O): Your goal. Reach it to win.\n"
             "- Door (D): A door that can be opened or closed.\n"
             "- Switch (S): Opens and closes the door.\n"

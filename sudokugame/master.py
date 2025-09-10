@@ -41,20 +41,34 @@ class SudokuGame(EnvGameMaster):
 
         self.game_environment.reset()
 
-    def _response_valid(
-        self, player: Player, utterance: str
-    ) -> bool:
+    def _response_valid(self, player: Player, response: str) -> bool:
         """
         Validate the player's response.
 
         Args:
             player: The player making the response
-            utterance: The player's response
+            response: The player's response
 
         Returns:
             bool: Whether the response is valid
         """
-        return True
+        try:
+            parts = response.strip().split()
+
+            if len(parts) != 3:
+                return False
+
+            row, col, value = map(int, parts)
+
+            if not (0 <= row < 9 and 0 <= col < 9):
+                return False
+
+            if not (1 <= value <= 9):
+                return False
+
+            return True
+        except (ValueError, TypeError):
+            return False
 
     def _parse_action_from_response(self, response: str) -> SudokuAction:
         """Create an action from a player's response.
