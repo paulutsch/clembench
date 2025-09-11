@@ -44,9 +44,7 @@ class TicTacToeGame(EnvGameMaster):
 
         self.game_environment.reset()
 
-    def _response_valid(
-        self, player: TicTacToePlayer, utterance: str
-    ) -> bool:
+    def _response_valid(self, player: TicTacToePlayer, utterance: str) -> bool:
         """
         Validate the player's response.
 
@@ -74,7 +72,7 @@ class TicTacToeGame(EnvGameMaster):
         """
         row, col = map(int, response.strip().split())
         action: TicTacToeAction = {
-            "action_type": "make_move",
+            "action_type": "default",
             "row": row,
             "col": col,
         }

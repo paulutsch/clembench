@@ -18,19 +18,10 @@ class PortalGameEnvironment(InclusiveGridEnvironment):
     def __init__(self, config: Dict):
         super().__init__(config=config)
 
-    def reset(self) -> None:
-        """Reset the game environment."""
-        super().reset()
-
-        self._populate_portal_grid()
-
-        self._update_observations()
-
-        for player in self.players:
-            self._set_action_space(player, ["move"])
-
-    def _populate_portal_grid(self) -> None:
+    def _initialize_state(self) -> None:
         """Construct the game grid based on the config."""
+        super()._initialize_state()
+
         if "grid" not in self.config:
             return
 
@@ -113,39 +104,21 @@ class PortalGameEnvironment(InclusiveGridEnvironment):
 
         return True, ""
 
-    def _update_observations(self) -> None:
-        """Update the observation for all players."""
-        for player in self.players:
-            rendered_state = self._render_state(player.name)
-            player_pos = self._get_player_position(player.name)
-
-            door_state = None
-            for row in self.state["_grid"]:
-                for cell in row:
-                    if cell["objects"] != [] and isinstance(cell["objects"][0], Door):
-                        door_state = cell["objects"][0].is_open
-
-            if self.state["_warning"]:
-                warning = "Warning: " + self.state["_warning"]
-            else:
-                warning = ""
-
-            if self.state["moves"] == 0:
-                text_content = (
-                    self.config.get("prompt", "")
-                ) + "\n\nYou initially see the following grid layout:\n"
-            else:
-                text_content = (
-                    (f"{warning}\n" if warning else "")
-                    + f"Current position: {player_pos}\n"
-                    + (
-                        f"Door state: {'open' if door_state else 'closed'}\n"
-                        if door_state is not None
-                        else ""
-                    )
-                    + f"\nGrid (Visible Area):\n"
-                )
-
-            observation = self._create_observation(text_content, rendered_state)
-
-            self.observations[player.name] = observation
+    def _compose_turn_prompt(self, player_name: str | None = None) -> str:
+        door_state = None
+        for row in self.state["_grid"]:
+            for cell in row:
+                if cell["objects"] != [] and isinstance(cell["objects"][0], Door):
+                    door_state = cell["objects"][0].is_open
+        prefix = ""
+        if self.state.get("moves", 0) == 1:
+            prompt = self.config["prompt"]
+            prefix += prompt + "\n\nYou initially see the following grid layout:\n"
+        else:
+            player_pos = self._get_player_position(player_name) if player_name else None
+            if player_pos is not None:
+                prefix += f"Current position: {player_pos}\n"
+            if door_state is not None:
+                prefix += f"Door state: {'open' if door_state else 'closed'}\n"
+            prefix += "\nGrid (Visible Area):"
+        return prefix

@@ -55,14 +55,9 @@ class SudokuEnvironment(GridEnvironment):
     def reset(self):
         super().reset()
 
-        self._initialize_grid()
-        self._update_observations()
-
-        for player in self.players:
-            self._set_action_space(player, ["fill_cell"])
-
-    def _initialize_grid(self):
+    def _initialize_state(self) -> None:
         """Initialize the grid with Sudoku objects."""
+        super()._initialize_state()
         config_grid = self.config.get("original_grid")
         original_grid = [[int(v) for v in row] for row in config_grid]
 
@@ -140,25 +135,13 @@ class SudokuEnvironment(GridEnvironment):
 
         return True, True
 
-    def _update_observations(self) -> None:
-        """Update the observation for all players."""
-        for player in self.players:
-            rendered_state = self._render_state()
-
-            if self.state["_warning"]:
-                warning = "Warning: " + self.state["_warning"]
-            else:
-                warning = ""
-
-            text_content = (
-                self.config.get("prompt", "") + "\n\n"
-                if self.state["moves"] == 0
-                else "" + (f"{warning}\n" if warning else "") + "The board is:\n\n"
-            )
-
-            observation = self._create_observation(text_content, rendered_state)
-
-            self.observations[player.name] = observation
+    def _compose_turn_prompt(self, player_name: Optional[str] = None) -> str:
+        base_prompt = self.config.get("prompt", "")
+        prefix = ""
+        if base_prompt and self.state["moves"] < len(self.players):
+            prefix += base_prompt + "\n\n"
+        prefix += "The board is:"
+        return prefix
 
     def _render_state_as_string(self, player_name: Optional[str] = None) -> str:
         """Render state as string."""

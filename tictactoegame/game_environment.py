@@ -48,15 +48,6 @@ class TicTacToeEnvironment(GridEnvironment):
     def __init__(self, config: Dict):
         super().__init__(config=config)
 
-    def reset(self) -> None:
-        """Reset the game environment."""
-        super().reset()
-
-        self._update_observations()
-
-        for player in self.players:
-            self._set_action_space(player, ["make_move"])
-
     def _action_valid_in_state(
         self, player: TicTacToePlayer, action: TicTacToeAction
     ) -> tuple[bool, str]:
@@ -98,49 +89,28 @@ class TicTacToeEnvironment(GridEnvironment):
         if np.all(board_np != "empty"):
             return True, False
 
-        return False, False
+        return False, True
 
-    def _get_current_symbol(self, i: int = 0) -> str:
+    def _get_current_symbol(self) -> str:
         """Get the current symbol of the player."""
         symbol_count = sum(
             1 for r in self.state["_grid"] for c in r if c["objects"] != []
         )
-        return "X" if (symbol_count + i) % 2 == 0 else "O"
+        return "X" if symbol_count % 2 == 0 else "O"
 
-    def _update_observations(self) -> None:
-        """Update the observation for all players."""
-        for i, player in enumerate(self.players):
-            rendered_state = self._render_state()
-            non_empty_cells = sum(
-                1
-                for row in self.state["_grid"]
-                for cell in row
-                if cell["objects"] != []
-            )
+    def _compose_turn_prompt(self, player_name: Optional[str] = None) -> str:
+        non_empty_cells = sum(
+            1 for row in self.state["_grid"] for cell in row if cell["objects"] != []
+        )
+        prefix = ""
+        if non_empty_cells < 2:
+            base_prompt = self.config.get("prompt", "")
+            prefix += base_prompt + "\n\n"
 
-            if self.state["_warning"]:
-                warning = "Warning: " + self.state["_warning"]
-            else:
-                warning = ""
-
-            current_symbol = self._get_current_symbol(i)
-
-            text_content = (
-                f"{warning}\n"
-                if warning
-                else (
-                    (
-                        self.config.get("prompt", "")
-                        + "\n\n"
-                        + f"You are the player that plays {current_symbol}.\n\n"
-                    )
-                    if non_empty_cells < 2
-                    else ""
-                )
-            ) + "The board is:\n\n"
-
-            observation = self._create_observation(text_content, rendered_state)
-            self.observations[player.name] = observation
+            current_symbol = self._get_current_symbol()
+            prefix += f"You are the player that plays {current_symbol}.\n\n"
+        prefix += "The board is:"
+        return prefix
 
     def _update_state_through_action(
         self, player: TicTacToePlayer, action: TicTacToeAction

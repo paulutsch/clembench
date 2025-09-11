@@ -97,7 +97,7 @@ class PortalGame(EnvGameMaster):
         else:
             direction = response.strip()[-1].lower()
         action: PortalAction = {
-            "action_type": "move",
+            "action_type": "default",
             "direction": direction,
         }
         return action

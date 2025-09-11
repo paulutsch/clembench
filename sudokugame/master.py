@@ -84,7 +84,7 @@ class SudokuGame(EnvGameMaster):
         """
         row, col, value = map(int, response.strip().split())
         action: SudokuAction = {
-            "action_type": "fill_cell",
+            "action_type": "default",
             "row": row,
             "col": col,
             "value": value,
