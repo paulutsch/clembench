@@ -13,7 +13,7 @@
           "shortest_path": 5,
           "limited_visibility": true,
           "show_explored": true,
-          "render_as": "human-readable",
+          "render_as": "string",
           "grid": {
             "walls": [
               [

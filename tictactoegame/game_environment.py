@@ -142,8 +142,6 @@ class TicTacToeEnvironment(GridEnvironment):
             observation = self._create_observation(text_content, rendered_state)
             self.observations[player.name] = observation
 
-        self.state["_warning"] = ""
-
     def _update_state_through_action(
         self, player: TicTacToePlayer, action: TicTacToeAction
     ) -> None:

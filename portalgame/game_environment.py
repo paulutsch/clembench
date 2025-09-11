@@ -149,5 +149,3 @@ class PortalGameEnvironment(InclusiveGridEnvironment):
             observation = self._create_observation(text_content, rendered_state)
 
             self.observations[player.name] = observation
-
-        self.state["_warning"] = ""

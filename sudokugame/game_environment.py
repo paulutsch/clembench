@@ -158,8 +158,6 @@ class SudokuEnvironment(GridEnvironment):
 
             observation = self._create_observation(text_content, rendered_state)
 
-            self.state["_warning"] = ""
-
             self.observations[player.name] = observation
 
     def _render_state_as_string(self, player_name: Optional[str] = None) -> str:
