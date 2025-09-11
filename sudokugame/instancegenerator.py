@@ -10,6 +10,7 @@ import random
 from typing import Dict, List
 
 from clemcore.clemgame import GameInstanceGenerator
+from sudoku import Sudoku
 
 LANGUAGE = "en"
 RENDER_AS = "string"
@@ -64,6 +65,13 @@ class SudokuGameInstanceGenerator(GameInstanceGenerator):
             experiment["language"] = LANGUAGE
 
             for game_id in range(num_instances):
+                # create original puzzle grid based on difficulty
+                puzzle = Sudoku(width // 3).difficulty(difficulty)
+                original_grid = [
+                    [0 if cell is None else int(cell) for cell in row]
+                    for row in puzzle.board
+                ]
+
                 config: Dict = {
                     "game_name": "sudokugame",
                     "prompt": prompt_text,
@@ -72,6 +80,7 @@ class SudokuGameInstanceGenerator(GameInstanceGenerator):
                     "render_as": render_as,
                     "max_moves": max_moves,
                     "difficulty": difficulty,
+                    "original_grid": original_grid,
                 }
 
                 game_instance = self.add_game_instance(experiment, game_id)

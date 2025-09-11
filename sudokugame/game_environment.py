@@ -52,11 +52,6 @@ class SudokuEnvironment(GridEnvironment):
     def __init__(self, config: Dict):
         super().__init__(config=config)
 
-        puzzle = Sudoku(self.width // 3).difficulty(self.config.get("difficulty", 0.5))
-        self.original_grid = [
-            [0 if cell is None else cell for cell in row] for row in puzzle.board
-        ]
-
     def reset(self):
         super().reset()
 
@@ -68,9 +63,12 @@ class SudokuEnvironment(GridEnvironment):
 
     def _initialize_grid(self):
         """Initialize the grid with Sudoku objects."""
+        config_grid = self.config.get("original_grid")
+        original_grid = [[int(v) for v in row] for row in config_grid]
+
         for i in range(self.width):
             for j in range(self.height):
-                value = self.original_grid[i][j]
+                value = original_grid[i][j]
                 object = SudokuObject((i, j), value)
                 self._add_object(object)
 

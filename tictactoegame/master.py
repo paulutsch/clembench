@@ -87,6 +87,13 @@ class TicTacToeGameScorer(GameScorer):
     def __init__(self, game_name: str, experiment: Dict, game_instance: Dict):
         super().__init__(game_name, experiment, game_instance)
 
+    def compute_round_score(self, round_idx, round_events):
+        self.log_round_score(
+            round_idx,
+            "Reward",
+            round_events[-1]["action"]["content"],
+        )
+
     def compute_episode_scores(self, interactions: Dict) -> None:
         """Compute episode-level scores for the TicTacToe game.
 
