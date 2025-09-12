@@ -16,19 +16,16 @@ from portalgame.game_environment import PortalAction, PortalGameEnvironment
 
 
 class PortalPlayer(Player):
-    """Player for the Portal game."""
 
     def __init__(self, model: Model):
         super().__init__(model)
 
     def _custom_response(self, context: Dict) -> str:
-        """Custom response for the player."""
         direction = random.choice(["n", "s", "e", "w"])
         return f"DIRECTION: {direction}"
 
 
 class PortalGame(EnvGameMaster):
-    """Game master for the Portal game."""
 
     def __init__(
         self,
@@ -39,12 +36,6 @@ class PortalGame(EnvGameMaster):
         super().__init__(game_spec, experiment, player_models)
 
     def _on_setup(self, **game_instance):
-        """
-        Called during game setup. Configure game parameters and initialize players.
-
-        Args:
-            game_instance: Game instance parameters from instances.json
-        """
         self.game_environment = PortalGameEnvironment(config=game_instance)
 
         for player in self.player_models:
@@ -52,19 +43,7 @@ class PortalGame(EnvGameMaster):
 
         self.game_environment.reset()
 
-    def _response_valid(
-        self, player: Player, utterance: str
-    ) -> bool:
-        """
-        Validate the player's response.
-
-        Args:
-            player: The player making the response
-            utterance: The player's response
-
-        Returns:
-            bool: Whether the response is valid
-        """
+    def _response_valid(self, player: Player, utterance: str) -> bool:
         try:
             # look for 'DIRECTION:' and extract the last non-whitespace char after it
 
@@ -81,14 +60,6 @@ class PortalGame(EnvGameMaster):
             return False
 
     def _parse_action_from_response(self, response: str) -> PortalAction:
-        """Create an action from a player's response.
-
-        Args:
-            response: The textual response from the player
-
-        Returns:
-            PortalAction: The parsed action
-        """
         match = re.search(
             r"DIRECTION:\s*([nsewNSEW])", response, re.IGNORECASE | re.DOTALL
         )
@@ -104,7 +75,6 @@ class PortalGame(EnvGameMaster):
 
 
 class PortalGameScorer(GameScorer):
-    """Scorer for the Portal game."""
 
     def __init__(self, game_name: str, experiment: Dict, game_instance: Dict):
         super().__init__(game_name, experiment, game_instance)
@@ -117,13 +87,7 @@ class PortalGameScorer(GameScorer):
         )
 
     def compute_episode_scores(self, interactions: Dict) -> None:
-        """Compute episode-level scores for the Portal game.
-
-        Args:
-            interactions: Dict containing the logged episode's interactions.
-        """
         aborted = interactions.get(METRIC_ABORTED, False)
-        success = interactions.get(METRIC_SUCCESS, False)
 
         shortest_path = self.game_instance["shortest_path"]
         moves = sum(interactions["Request Count"])
@@ -131,12 +95,10 @@ class PortalGameScorer(GameScorer):
 
         if aborted:
             bench_score = np.nan
-        elif not success:
-            bench_score = 0.0
         else:
             bench_score = 100.0
 
-            # for example: the more efficient the player is, the higher the bench score
+            # the more efficient the player is, the higher the bench score
             bench_score = bench_score - (50 * (1 - efficiency))
 
         self.log_episode_score("Efficiency", efficiency)
@@ -144,7 +106,6 @@ class PortalGameScorer(GameScorer):
 
 
 class PortalGameBenchmark(GameBenchmark):
-    """Integrate the game into the benchmark run."""
 
     def __init__(self, game_spec: GameSpec):
         super().__init__(game_spec)

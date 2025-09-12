@@ -35,9 +35,6 @@ class PortalGameInstanceGenerator(GameInstanceGenerator):
         - Add the 2-step detour for hitting the switch to the shortest_path.
         """
 
-        experiment = self.add_experiment("portalgame_standard")
-        experiment["language"] = LANGUAGE
-
         prompt_text = (
             "You are playing the Portal Game, a maze navigation challenge where your goal is to reach the portal.\n\n"
             "Game Elements:\n\n"
@@ -53,7 +50,7 @@ class PortalGameInstanceGenerator(GameInstanceGenerator):
         )
 
         # parameters (override those via kwargs, optional)
-        num_instances: int = int(kwargs.get("num_instances", 10))
+        num_instances: int = int(kwargs.get("num_instances", 6))
         width: int = int(kwargs.get("width", WIDTH))
         height: int = int(kwargs.get("height", HEIGHT))
         wall_fraction: float = float(kwargs.get("wall_fraction", WALL_FRACTION))
@@ -120,115 +117,170 @@ class PortalGameInstanceGenerator(GameInstanceGenerator):
 
             return path
 
-        for game_id in range(num_instances):
-            base_walls = set(border_walls(width, height))
+        # five distinct experiment configurations
+        combos = [
+            {
+                "name": "6x6_unlimited",
+                "width": 6,
+                "height": 6,
+                "limited_visibility": False,
+                "show_explored": False,
+            },
+            {
+                "name": "5x5_limited_explored",
+                "width": 5,
+                "height": 5,
+                "limited_visibility": True,
+                "show_explored": True,
+            },
+            {
+                "name": "5x5_limited_hidden",
+                "width": 5,
+                "height": 5,
+                "limited_visibility": True,
+                "show_explored": False,
+            },
+            {
+                "name": "7x7_limited_explored",
+                "width": 7,
+                "height": 7,
+                "limited_visibility": True,
+                "show_explored": True,
+            },
+            {
+                "name": "7x7_limited_hidden",
+                "width": 7,
+                "height": 7,
+                "limited_visibility": True,
+                "show_explored": False,
+            },
+        ]
 
-            # random player start, within borders
-            player_start = (
-                random.randint(1, height - 2),
-                random.randint(1, width - 2),
-            )
+        for combo in combos:
+            # set per-experiment parameters
+            width = combo["width"]
+            height = combo["height"]
+            limited_visibility = combo["limited_visibility"]
+            show_explored = combo["show_explored"]
 
-            portal: Optional[Tuple[int, int]] = None
-            portal_shortest_path: Optional[List[Tuple[int, int]]] = None
+            experiment = self.add_experiment(f"portalgame_{combo['name']}")
+            experiment["language"] = LANGUAGE
 
-            # choose portal with valid empty-grid shortest path
-            while not portal_shortest_path:
-                candidate_portal_pos = (
+            for game_id in range(num_instances):
+                base_walls = set(border_walls(width, height))
+
+                # random player start, within borders
+                player_start = (
                     random.randint(1, height - 2),
                     random.randint(1, width - 2),
                 )
 
-                if candidate_portal_pos == player_start:
-                    continue
+                portal: Optional[Tuple[int, int]] = None
+                portal_shortest_path: Optional[List[Tuple[int, int]]] = None
 
-                candidate_path = bfs_shortest_path(
-                    player_start, candidate_portal_pos, blocked=base_walls
+                # choose portal with valid empty-grid shortest path
+                while not portal_shortest_path:
+                    candidate_portal_pos = (
+                        random.randint(1, height - 2),
+                        random.randint(1, width - 2),
+                    )
+
+                    if candidate_portal_pos == player_start:
+                        continue
+
+                    candidate_path = bfs_shortest_path(
+                        player_start, candidate_portal_pos, blocked=base_walls
+                    )
+
+                    if candidate_path is not None and len(candidate_path) >= 3:
+                        portal = candidate_portal_pos
+                        portal_shortest_path = candidate_path
+
+                # this is just to suppress type errors
+                assert portal_shortest_path is not None
+                assert portal is not None
+
+                base_shortest = len(portal_shortest_path) - 1
+
+                door = portal_shortest_path[-2]
+
+                # surround portal by walls except for door
+                portal_neighbors = [
+                    nb for nb in neighbors(portal) if within_borders(nb) and nb != door
+                ]
+                portal_surround_walls: Set[Tuple[int, int]] = set(portal_neighbors)
+
+                # make sure not to place walls onto cells that are already occupied
+                reserved: Set[Tuple[int, int]] = set(portal_shortest_path)
+                reserved.add(player_start)
+                reserved.add(portal)
+                reserved.add(door)
+                reserved.update(portal_surround_walls)
+
+                # switch adjacent to the shortest path (random)
+                candidates: List[Tuple[int, int]] = []
+                for c in portal_shortest_path:
+                    for nb in neighbors(c):
+                        if within_borders(nb) and nb not in reserved:
+                            candidates.append(nb)
+                if not candidates:
+                    for nb in neighbors(door):
+                        if within_borders(nb) and nb not in reserved:
+                            candidates.append(nb)
+                switch = random.choice(candidates)
+                switch_shortest_path = bfs_shortest_path(
+                    player_start, switch, blocked=base_walls
                 )
 
-                if candidate_path is not None and len(candidate_path) >= 3:
-                    portal = candidate_portal_pos
-                    portal_shortest_path = candidate_path
+                assert switch_shortest_path is not None
 
-            # this is just to suppress type errors
-            assert portal_shortest_path is not None
-            assert portal is not None
+                reserved.add(switch)
+                reserved.update(switch_shortest_path)
 
-            base_shortest = len(portal_shortest_path) - 1
+                # add random walls
+                available_cells: List[Tuple[int, int]] = [
+                    (y, x)
+                    for y in range(1, height - 1)
+                    for x in range(1, width - 1)
+                    if (y, x) not in reserved
+                ]
+                random.shuffle(available_cells)
+                num_walls = int(wall_fraction * len(available_cells))
+                random_walls = set(available_cells[:num_walls])
+                walls = list(
+                    base_walls.union(random_walls).union(portal_surround_walls)
+                )
 
-            door = portal_shortest_path[-2]
+                if switch not in portal_shortest_path:
+                    shortest_path_with_switch = (
+                        base_shortest + 2
+                    )  # step to switch and back
+                else:
+                    shortest_path_with_switch = base_shortest
+                max_moves = min(width * height // 2, shortest_path_with_switch + 10)
 
-            # surround portal by walls except for door
-            portal_neighbors = [
-                nb for nb in neighbors(portal) if within_borders(nb) and nb != door
-            ]
-            portal_surround_walls: Set[Tuple[int, int]] = set(portal_neighbors)
+                config: Dict = {
+                    "game_name": "portalgame",
+                    "prompt": prompt_text,
+                    "height": height,
+                    "width": width,
+                    "max_moves": max_moves,
+                    "shortest_path": shortest_path_with_switch,
+                    "limited_visibility": limited_visibility,
+                    "show_explored": show_explored,
+                    "render_as": render_as,
+                    "grid": {
+                        "walls": walls,
+                        "portal": portal,
+                        "switch": switch,
+                        "door": door,
+                        "players_start": [player_start],
+                    },
+                }
 
-            # make sure not to place walls onto cells that are already occupied
-            reserved: Set[Tuple[int, int]] = set(portal_shortest_path)
-            reserved.add(player_start)
-            reserved.add(portal)
-            reserved.add(door)
-            reserved.update(portal_surround_walls)
-
-            # switch adjacent to the shortest path (random)
-            candidates: List[Tuple[int, int]] = []
-            for c in portal_shortest_path:
-                for nb in neighbors(c):
-                    if within_borders(nb) and nb not in reserved:
-                        candidates.append(nb)
-            if not candidates:
-                for nb in neighbors(door):
-                    if within_borders(nb) and nb not in reserved:
-                        candidates.append(nb)
-            switch = random.choice(candidates)
-            switch_shortest_path = bfs_shortest_path(
-                player_start, switch, blocked=base_walls
-            )
-
-            assert switch_shortest_path is not None
-
-            reserved.add(switch)
-            reserved.update(switch_shortest_path)
-
-            # add random walls
-            available_cells: List[Tuple[int, int]] = [
-                (y, x)
-                for y in range(1, height - 1)
-                for x in range(1, width - 1)
-                if (y, x) not in reserved
-            ]
-            random.shuffle(available_cells)
-            num_walls = int(wall_fraction * len(available_cells))
-            random_walls = set(available_cells[:num_walls])
-            walls = list(base_walls.union(random_walls).union(portal_surround_walls))
-
-            if switch not in portal_shortest_path:
-                shortest_path_with_switch = base_shortest + 2  # step to switch and back
-            max_moves = min(width * height // 2, shortest_path_with_switch + 10)
-
-            config: Dict = {
-                "game_name": "portalgame",
-                "prompt": prompt_text,
-                "height": height,
-                "width": width,
-                "max_moves": max_moves,
-                "shortest_path": shortest_path_with_switch,
-                "limited_visibility": limited_visibility,
-                "show_explored": show_explored,
-                "render_as": render_as,
-                "grid": {
-                    "walls": walls,
-                    "portal": portal,
-                    "switch": switch,
-                    "door": door,
-                    "players_start": [player_start],
-                },
-            }
-
-            game_instance = self.add_game_instance(experiment, game_id)
-            for key, value in config.items():
-                game_instance[key] = value
+                game_instance = self.add_game_instance(experiment, game_id)
+                for key, value in config.items():
+                    game_instance[key] = value
 
 
 if __name__ == "__main__":

@@ -6,20 +6,13 @@ from portalgame.objects import Door, Portal, Switch, Wall
 
 
 class PortalAction(Action):
-    """Action for the Portal game."""
-
     action_type: str  # 'move
     direction: str  # 'n', 's', 'e', 'w'
 
 
 class PortalGameEnvironment(InclusiveGridEnvironment):
-    """Environment for the Portal game."""
-
-    def __init__(self, config: Dict):
-        super().__init__(config=config)
 
     def _initialize_state(self) -> None:
-        """Construct the game grid based on the config."""
         super()._initialize_state()
 
         if "grid" not in self.config:
@@ -49,7 +42,6 @@ class PortalGameEnvironment(InclusiveGridEnvironment):
     def _update_state_through_action(
         self, player: Player, action: PortalAction
     ) -> None:
-        """Update the game state based on the action."""
         direction = action.get("direction")
         self._move_player(player.name, direction)
 
@@ -62,9 +54,6 @@ class PortalGameEnvironment(InclusiveGridEnvironment):
                         cell["objects"][0].toggle_state()
 
     def _check_won(self, player: Player) -> Tuple[bool, bool]:
-        """
-        Check if the player has won.
-        """
         new_cell_objects = self._get_objects_at(self._get_player_position(player.name))
 
         if new_cell_objects != [] and isinstance(new_cell_objects[0], Portal):
@@ -75,7 +64,6 @@ class PortalGameEnvironment(InclusiveGridEnvironment):
     def _action_valid_in_state(
         self, player: Player, action: PortalAction
     ) -> Tuple[bool, str]:
-        """Check if a move is valid."""
         direction: Literal["n", "s", "e", "w"] = action.get("direction")  # type: ignore
         valid, reason = super()._action_valid_in_state(player, direction)
         if not valid:
@@ -111,7 +99,7 @@ class PortalGameEnvironment(InclusiveGridEnvironment):
                 if cell["objects"] != [] and isinstance(cell["objects"][0], Door):
                     door_state = cell["objects"][0].is_open
         prefix = ""
-        if self.state.get("moves", 0) == 1:
+        if self.state.get("moves", 0) == 0:
             prompt = self.config["prompt"]
             prefix += prompt + "\n\nYou initially see the following grid layout:\n"
         else:

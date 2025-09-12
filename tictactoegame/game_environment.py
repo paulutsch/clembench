@@ -19,7 +19,6 @@ class TicTacToeAction(Action):
 
 
 class TicTacToePlayer(Player):
-    """Player for the TicTacToe game."""
 
     def __init__(self, model):
         super().__init__(model)
@@ -32,7 +31,6 @@ class TicTacToePlayer(Player):
 
 
 class TicTacToeCell(Object):
-    """Represents a cell in the TicTacToe grid."""
 
     def __init__(self, position: tuple[int, int], value: str = " "):
         symbol = "X" if value == "X" else "O" if value == "O" else "empty"
@@ -43,15 +41,10 @@ class TicTacToeCell(Object):
 
 
 class TicTacToeEnvironment(GridEnvironment):
-    """Environment for the TicTacToe game."""
-
-    def __init__(self, config: Dict):
-        super().__init__(config=config)
 
     def _action_valid_in_state(
         self, player: TicTacToePlayer, action: TicTacToeAction
     ) -> tuple[bool, str]:
-        """Check if an action is valid in the current state."""
         row = action.get("row")
         col = action.get("col")
 
@@ -67,7 +60,6 @@ class TicTacToeEnvironment(GridEnvironment):
         return True, ""
 
     def _check_won(self, player: Player) -> tuple[bool, bool]:
-        """Check if the game is over (win or draw)."""
         board_np = np.array([["empty" for _ in range(3)] for _ in range(3)])
         for i in range(self.height):
             for j in range(self.width):
@@ -92,7 +84,6 @@ class TicTacToeEnvironment(GridEnvironment):
         return False, True
 
     def _get_current_symbol(self) -> str:
-        """Get the current symbol of the player."""
         symbol_count = sum(
             1 for r in self.state["_grid"] for c in r if c["objects"] != []
         )
@@ -115,7 +106,6 @@ class TicTacToeEnvironment(GridEnvironment):
     def _update_state_through_action(
         self, player: TicTacToePlayer, action: TicTacToeAction
     ) -> None:
-        """Update the game state based on the action."""
         row = action["row"]
         col = action["col"]
 
